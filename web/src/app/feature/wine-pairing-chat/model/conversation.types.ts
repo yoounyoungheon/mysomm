@@ -48,6 +48,7 @@ export type ConversationState = {
 };
 
 export type ConversationAction =
+  | { type: "PRESENTATION_BATCH"; actions: ConversationAction[] }
   | { type: "PAIRING_START" }
   | { type: "RECOMMENDATION_START"; question: string }
   | {

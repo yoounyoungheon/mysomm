@@ -24,6 +24,7 @@ import {
   initialConversationState,
 } from "../model/conversation.reducer";
 import type { ConversationAction } from "../model/conversation.types";
+import { createConversationPresentation } from "../model/conversation-presentation";
 
 const PAIRING_ERROR_FALLBACK = "와인 추천을 불러오지 못했습니다.";
 const CHAT_ERROR_FALLBACK = "채팅 응답을 불러오지 못했습니다.";
@@ -71,6 +72,7 @@ export function useWinePairingConversation() {
 
   const startedRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  const chatInFlightRef = useRef(false);
 
   const { snapshot, alreadyConsumed, isHydrated } = hydrated;
   const sessionId = snapshot?.sessionId ?? null;
@@ -110,15 +112,20 @@ export function useWinePairingConversation() {
       const message = rawMessage.trim();
       const signal = abortRef.current?.signal;
 
-      if (!message || !sessionId || !isComposerEnabled) {
+      if (
+        !message || !sessionId || !isComposerEnabled || !signal || signal.aborted ||
+        chatInFlightRef.current
+      ) {
         return;
       }
+      chatInFlightRef.current = true;
 
       // 질문 버블을 즉시 표시한다. 첫 SSE frame으로 ChatTurn/PairingTurn을 확정한다.
       dispatch({ type: "CHAT_START", question: message });
 
       void (async () => {
         let turnKind: "chat" | "pairing" | null = null;
+        const presentation = createConversationPresentation(dispatch, signal);
 
         try {
           for await (const event of streamWinePairingChat(
@@ -131,28 +138,30 @@ export function useWinePairingConversation() {
             if (turnKind === null) {
               if (isChatStreamEvent(event)) {
                 turnKind = "chat";
-                dispatch({ type: "CHAT_APPEND", chunk: event.data.body });
+                presentation.enqueue({ type: "CHAT_APPEND", chunk: event.data.body });
               } else if (isPairingStreamEvent(event)) {
                 turnKind = "pairing";
                 // RECOMMENDATION_START가 빈 ChatTurn을 제거하고 PairingTurn으로 대체한다.
+                // 턴의 종류는 즉시 확정해 첫 표시 tick 전에 실패해도 올바른 턴에 오류를 붙인다.
                 dispatch({ type: "RECOMMENDATION_START", question: message });
-                dispatchPairingEvent(event, dispatch);
+                dispatchPairingEvent(event, presentation.enqueue);
               }
             } else if (turnKind === "chat") {
               if (isChatStreamEvent(event)) {
-                dispatch({ type: "CHAT_APPEND", chunk: event.data.body });
+                presentation.enqueue({ type: "CHAT_APPEND", chunk: event.data.body });
               }
             } else if (isPairingStreamEvent(event)) {
-              dispatchPairingEvent(event, dispatch);
+              dispatchPairingEvent(event, presentation.enqueue);
             }
           }
 
           if (turnKind === "pairing") {
-            dispatch({ type: "PAIRING_DONE" });
+            await presentation.finish({ type: "PAIRING_DONE" });
           } else {
-            dispatch({ type: "CHAT_DONE" });
+            await presentation.finish({ type: "CHAT_DONE" });
           }
         } catch (error) {
+          presentation.cancel();
           if (signal?.aborted) return;
 
           if (turnKind === "pairing") {
@@ -166,6 +175,9 @@ export function useWinePairingConversation() {
               message: toErrorMessage(error, CHAT_ERROR_FALLBACK),
             });
           }
+        } finally {
+          presentation.cancel();
+          chatInFlightRef.current = false;
         }
       })();
     },
@@ -194,6 +206,7 @@ async function runPairingStream(
   dispatch: (action: ConversationAction) => void
 ) {
   dispatch({ type: "PAIRING_START" });
+  const presentation = createConversationPresentation(dispatch, controller.signal);
 
   try {
     for await (const event of streamWinePairing(
@@ -204,10 +217,11 @@ async function runPairingStream(
       if (controller.signal.aborted) {
         return;
       }
-      dispatchPairingEvent(event, dispatch);
+      dispatchPairingEvent(event, presentation.enqueue);
     }
-    dispatch({ type: "PAIRING_DONE" });
+    await presentation.finish({ type: "PAIRING_DONE" });
   } catch (error) {
+    presentation.cancel();
     if (controller.signal.aborted) {
       return;
     }
@@ -215,6 +229,8 @@ async function runPairingStream(
       type: "PAIRING_ERROR",
       message: toErrorMessage(error, PAIRING_ERROR_FALLBACK),
     });
+  } finally {
+    presentation.cancel();
   }
 }
 
@@ -254,7 +270,10 @@ function isValidPairingPayload(
       typeof payload === "object" &&
       payload.wine &&
       typeof payload.wine.id === "string" &&
-      typeof payload.wine.wineName === "string"
+      typeof payload.wine.wineName === "string" &&
+      typeof payload.comment === "string" &&
+      typeof payload.reason === "string" &&
+      typeof payload.rank === "number" && Number.isFinite(payload.rank)
   );
 }
 

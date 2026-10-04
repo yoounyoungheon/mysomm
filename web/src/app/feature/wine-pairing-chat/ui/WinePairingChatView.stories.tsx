@@ -194,6 +194,30 @@ export const Default: Story = {
   }),
 };
 
+/** 서버가 JSON 결과를 한 번에 반환해도 텍스트 표시 완료까지 입력을 잠근다. */
+export const BurstResponse: Story = {
+  beforeEach: stubStoryEnv({
+    seedRequest: true,
+    onPairing: () => {
+      const frames = samplePayloads.map((data) => ({ type: "JSON", data }));
+      return new Response(
+        frames.map((frame) => `data:${JSON.stringify(frame)}\n\n`).join(""),
+        { headers: { "Content-Type": "text/event-stream" } }
+      );
+    },
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const pendingInput = await canvas.findByPlaceholderText("와인 추천이 끝나면 질문할 수 있어요");
+    await expect(pendingInput).toBeDisabled();
+    const readyInput = await canvas.findByPlaceholderText(
+      "채팅을 입력하세요", {}, { timeout: 10_000 }
+    );
+    await expect(readyInput).toBeEnabled();
+    await expect(canvas.getAllByRole("button", { name: /상세 정보 보기/ })).toHaveLength(2);
+  },
+};
+
 /** 페어링이 완료되고 채팅 입력이 가능한 상태. 질문을 입력하면 스텁 답변이 스트리밍된다. */
 export const PairingDone: Story = {
   beforeEach: stubStoryEnv({

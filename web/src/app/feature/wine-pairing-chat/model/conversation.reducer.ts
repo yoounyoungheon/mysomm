@@ -31,6 +31,9 @@ export function conversationReducer(
   action: ConversationAction
 ): ConversationState {
   switch (action.type) {
+    case "PRESENTATION_BATCH":
+      return action.actions.reduce(conversationReducer, state);
+
     case "PAIRING_START":
       return {
         ...state,

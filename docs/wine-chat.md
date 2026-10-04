@@ -45,6 +45,7 @@ WineChatPage [Server]  (page.tsx)
 | 입력 중 message | composer `useState` |
 | slide index / flip | 각 UI 로컬 state |
 | AbortController | controller hook `ref` |
+| 미표시 텍스트·확정·완료 액션 | 요청별 `conversation-presentation` 큐 (React state 외부) |
 
 SSE 원본은 Zustand/TanStack Query에 누적하지 않는다. reducer는 순수 상태 전이만 맡고,
 fetch/stream iteration은 `use-wine-pairing-conversation` controller hook에 격리한다.
@@ -69,10 +70,22 @@ snapshot 복원 → markConsumed
 → POST /v1/wine-pairings/pairing (Accept: text/event-stream)
 → backend ReadableStream을 버퍼링 없이 pipe
    (Content-Type: text/event-stream, Cache-Control: no-store, X-Accel-Buffering: no)
-→ client SSE parser → reducer
+→ client SSE parser → 표시 큐 → 40ms 주기 batch → reducer
 ```
 
 후속 chat도 동일 `X-Session-Id`로 `POST /api/wine-pairings/chat { message }`를 호출한다.
+
+## 서버 수신과 UI 표시 속도 분리
+
+`conversation-presentation.ts`는 최초 페어링, 재페어링, 일반 채팅마다 별도 큐를 만든다. SSE 수신은 큐에 즉시 적재하고, UI는 40ms마다 최대 3개 Unicode code point를 소비한다 (버퍼가 충분하면 약 75자/초). 같은 필드의 여러 작은 frame은 합쳐서 처리하고, 긴 frame은 여러 tick으로 나누므로 서버 chunk 크기에 표시량이 종속되지 않는다. 한 tick의 액션은 `PRESENTATION_BATCH`로 reducer에 전달한다.
+
+최종 JSON은 앞선 텍스트 뒤에 적용한다. JSON-only 응답이나 STREAM에 없던 최종 suffix는 점진 표시하고, 앞선 텍스트와 다른 최종 값은 JSON을 권위값으로 교체한다. 네트워크가 종료돼도 표시 큐가 남아 있으면 streaming 상태와 입력 잠금을 유지하며, 큐를 소진한 뒤에 DONE을 처리한다.
+
+버퍼가 비면 타이머를 멈추고 다음 수신 때 다시 시작한다. 데이터가 도착하지 않는 동안 표시 속도를 보장하거나 내용을 생성하지 않는다. 백그라운드 탭과 브라우저 부하로 타이머가 지연될 수도 있다. 오류는 미표시 버퍼를 폐기하고 즉시 오류를 표시하며, abort/unmount는 타이머와 완료 대기를 정리해 늦은 확정을 막는다. 동기 ref 가드로 동일 render에서 채팅을 연속 전송하는 것도 차단한다.
+
+검증은 `conversation-presentation.test.ts`의 fake timer 테스트로 일괄/분할 수신, 버퍼 고갈 후 재개, 이모지, JSON-only 여러 카드, suffix 보충·권위값 정정, 완료 순서, abort·오류를 확인한다. Storybook `BurstResponse`는 JSON 일괄 응답에서도 입력 잠금이 표시 완료까지 유지되는지 확인한다.
+
+검증 결과: 표시 큐·기존 reducer 단위 테스트 16개와 Chrome의 `Burst Response` 화면 테스트 1개 통과. 변경 파일의 타입 검사와 ESLint 통과. 전체 프로젝트 타입 검사는 기존 `.next/types`의 제거된 라우트 참조 및 `jose/jwt/sign`, `jose/jwt/verify` 모듈 해석 오류로 실패했다.
 
 ## SSE 해석 규칙 (reducer)
 
