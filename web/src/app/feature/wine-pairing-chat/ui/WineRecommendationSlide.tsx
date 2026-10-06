@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type MouseEventHandler, type Ref } from "react";
 import Image from "next/image";
 import { RotateCcw, Wine } from "lucide-react";
 import type { PairingStreamWine } from "@/app/entity/wine-pairing/model/wine-pairing.type";
@@ -40,11 +40,29 @@ export default function WineRecommendationSlide({
 }: WineRecommendationSlideProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedField, setExpandedField] = useState<ExpandedField | null>(null);
+  const detailButtonRef = useRef<HTMLButtonElement>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const shouldMoveFocus = useRef(false);
   const canFlip = slide.isCommitted && slide.wine !== null;
 
-  const handleFlip = () => {
+  useLayoutEffect(() => {
+    if (!shouldMoveFocus.current) return;
+    shouldMoveFocus.current = false;
+    const button = isFlipped ? backButtonRef.current : detailButtonRef.current;
+    button?.focus({ preventScroll: true });
+  }, [isFlipped]);
+
+  const handleFlip: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.currentTarget.blur();
+    shouldMoveFocus.current = true;
     setExpandedField(null);
     setIsFlipped(true);
+  };
+
+  const handleBack: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.currentTarget.blur();
+    shouldMoveFocus.current = true;
+    setIsFlipped(false);
   };
 
   return (
@@ -56,11 +74,17 @@ export default function WineRecommendationSlide({
             isFlipped && "[transform:rotateY(180deg)]"
           )}
         >
-          <div aria-hidden={isFlipped} className="[backface-visibility:hidden]">
+          <div
+            data-card-face="front"
+            inert={isFlipped}
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            className={cn(isFlipped && "invisible pointer-events-none")}
+          >
             <RecommendationFront
               slide={slide}
               canFlip={canFlip}
               onFlip={handleFlip}
+              buttonRef={detailButtonRef}
               expandedField={expandedField}
               onExpandField={setExpandedField}
               onDismissExpandedField={() => setExpandedField(null)}
@@ -69,13 +93,19 @@ export default function WineRecommendationSlide({
           </div>
 
           <div
-            aria-hidden={!isFlipped}
-            className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+            data-card-face="back"
+            inert={!isFlipped}
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            className={cn(
+              "absolute inset-0 [transform:rotateY(180deg)]",
+              !isFlipped && "invisible pointer-events-none"
+            )}
           >
             {slide.wine ? (
               <WineDetailBack
                 wine={slide.wine}
-                onBack={() => setIsFlipped(false)}
+                onBack={handleBack}
+                buttonRef={backButtonRef}
                 isActive={isFlipped}
               />
             ) : null}
@@ -90,6 +120,7 @@ function RecommendationFront({
   slide,
   canFlip,
   onFlip,
+  buttonRef,
   expandedField,
   onExpandField,
   onDismissExpandedField,
@@ -97,7 +128,8 @@ function RecommendationFront({
 }: {
   slide: WineRecommendationSlideProps["slide"];
   canFlip: boolean;
-  onFlip: () => void;
+  onFlip: MouseEventHandler<HTMLButtonElement>;
+  buttonRef: Ref<HTMLButtonElement>;
   expandedField: ExpandedField | null;
   onExpandField: (field: ExpandedField) => void;
   onDismissExpandedField: () => void;
@@ -120,6 +152,7 @@ function RecommendationFront({
         <button
           type="button"
           onClick={onFlip}
+          ref={buttonRef}
           tabIndex={isActive ? 0 : -1}
           aria-label={`${slide.name} 상세 정보 보기`}
           className="absolute right-3 top-3 z-10 rounded-[9px] border border-white/60 bg-primary/[0.10] px-2.5 py-1.5 text-[11px] font-bold text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl transition-colors hover:bg-primary/[0.16]"
@@ -219,10 +252,12 @@ function RecommendationFront({
 function WineDetailBack({
   wine,
   onBack,
+  buttonRef,
   isActive,
 }: {
   wine: PairingStreamWine;
-  onBack: () => void;
+  onBack: MouseEventHandler<HTMLButtonElement>;
+  buttonRef: Ref<HTMLButtonElement>;
   isActive: boolean;
 }) {
   const regionSegments = formatWineRegionSegments(wine.region);
@@ -266,6 +301,7 @@ function WineDetailBack({
         <button
           type="button"
           onClick={onBack}
+          ref={buttonRef}
           tabIndex={isActive ? 0 : -1}
           aria-label={`${wine.wineName} 추천 설명으로 돌아가기`}
           className={cn(

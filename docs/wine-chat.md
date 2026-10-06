@@ -105,6 +105,11 @@ React key는 `pairingId + wine.id + rank`를 결합한다(pairingId는 slide마�
 
 ## 와인 화면 모델
 
+- 모바일 Safari에서 플립 카드의 반투명·블러 레이어가 겹치지 않도록 비활성 면을 `visibility: hidden`, `pointer-events: none`, `inert`로 숨긴다. 표준·WebKit `backfaceVisibility`도 두 면에 명시하며, 회전 애니메이션과 카드 높이는 유지한다. 버튼 `tabIndex`와 함께 화면·클릭·키보드 접근을 차단하며, 중복 `aria-hidden`은 사용하지 않는다.
+- 앞뒤 전환 시 이전 버튼을 먼저 blur하고, DOM 갱신 직후 `useLayoutEffect`에서 새 면의 전환 버튼에 `focus({ preventScroll: true })`를 적용한다. 숨겨지는 면에 포커스가 남지 않으며, 최초 렌더링·스트리밍 갱신에서는 포커스를 이동하지 않는다.
+- "준비 중인 기능이에요" 안내는 카탈로그 제외 모드이거나 품종·빈티지·도수 정보가 없을 때의 기존 정책이다. 카드 겹침 수정과 별개로 이 조건은 유지한다.
+- 모바일 겹침·포커스 수정 검증: Chrome 390×844 브라우저에서 카드 Storybook 9개(왕복·준비 중·Enter/Tab 포커스 포함), 변경 컴포넌트·스토리 타입 검사, ESLint 통과. 실제 iPhone Safari 및 운영 사이트 배포 후 확인은 남아 있다.
+
 - 앞면 이미지는 기본 모바일에서 `68px`, 480px 이상에서 `72px` 폭으로 표시한다.
   높이는 각각 `136px`, `144px`이며 `object-contain`으로 원본 비율을 유지한다.
 - `wineBottleImageUrl`이 없으면 catalog fallback 이미지를 준비 중 overlay와 함께 표시하고,

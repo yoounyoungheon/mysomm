@@ -141,11 +141,12 @@ export const WithWineDetail: Story = {
 
     await userEvent.click(detailButton);
     await expect(detailButton).toHaveAttribute("tabindex", "-1");
+    await expect(detailButton.closest("[data-card-face]")).toHaveStyle({ visibility: "hidden" });
     await expect(
       canvas.getByRole("button", {
         name: "샤또 라 로즈 드 비트락 루즈 추천 설명으로 돌아가기",
       })
-    ).toBeVisible();
+    ).toHaveFocus();
   },
 };
 
@@ -167,6 +168,63 @@ export const FlipRoundTrip: Story = {
     );
 
     await expect(detailButton).toHaveAttribute("tabindex", "0");
+    await expect(detailButton).toHaveFocus();
+    await expect(detailButton.closest("[data-card-face]")).toHaveStyle({ visibility: "visible" });
+    await expect(canvasElement.querySelector('[data-card-face="back"]')).toHaveStyle({ visibility: "hidden" });
+  },
+};
+
+/** 모바일 폭에서 준비 중 안내를 표시해도 숨겨진 앞면이 뒤에 비치지 않아야 한다. */
+export const MobilePreparingDetail: Story = {
+  args: {
+    slide: {
+      ...detailedSlide,
+      wine: { ...detailedSlide.wine!, variety: null, vintage: null, alcohol: null },
+    },
+  },
+  render: (args) => (
+    <div className="w-[280px] max-w-full bg-background-03 p-2">
+      <WineRecommendationSlide {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const front = canvasElement.querySelector('[data-card-face="front"]');
+    const back = canvasElement.querySelector('[data-card-face="back"]');
+    const detailButton = canvas.getByRole("button", { name: /상세 정보 보기/ });
+    await expect(back).toHaveStyle({ visibility: "hidden" });
+    await userEvent.click(detailButton);
+    await expect(front).toHaveStyle({ visibility: "hidden" });
+    await expect(front).toHaveAttribute("inert");
+    await expect(back).toHaveStyle({ visibility: "visible" });
+    await expect(canvas.getByText("준비 중인 기능이에요")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /추천 설명으로 돌아가기/ })).toHaveFocus();
+    await userEvent.click(canvas.getByRole("button", { name: /추천 설명으로 돌아가기/ }));
+    await expect(detailButton).toHaveFocus();
+    await expect(front).toHaveStyle({ visibility: "visible" });
+    await expect(back).toHaveStyle({ visibility: "hidden" });
+  },
+};
+
+export const KeyboardFlipFocus: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const detailButton = canvas.getByRole("button", { name: /상세 정보 보기/ });
+    await expect(detailButton).not.toHaveFocus();
+    detailButton.focus();
+    await userEvent.keyboard("{Enter}");
+    const backButton = canvas.getByRole("button", { name: /추천 설명으로 돌아가기/ });
+    await expect(backButton).toHaveFocus();
+    await expect(canvasElement.querySelector('[data-card-face="front"]')).toHaveAttribute("inert");
+    await expect(canvasElement.querySelector('[data-card-face="front"]')).not.toHaveAttribute("aria-hidden");
+    await userEvent.tab();
+    await expect(detailButton).not.toHaveFocus();
+    await userEvent.tab({ shift: true });
+    await expect(backButton).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect(detailButton).toHaveFocus();
+    await expect(canvasElement.querySelector('[data-card-face="back"]')).toHaveAttribute("inert");
+    await expect(canvasElement.querySelector('[data-card-face="back"]')).not.toHaveAttribute("aria-hidden");
   },
 };
 
