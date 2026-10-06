@@ -1,0 +1,25 @@
+.dot {
+  opacity: 0.3;
+  animation: assemble 3.6s ease-in-out infinite;
+}
+
+@keyframes assemble {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  35%,
+  55% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    opacity: 0.65;
+  }
+}

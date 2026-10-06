@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import WineRecommendationSlide from "./WineRecommendationSlide";
 import type { PairingSlideView } from "../model/conversation.types";
@@ -113,12 +114,18 @@ export const NoImage: Story = {
       imageUrl: "",
     },
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("준비중...")).toBeVisible();
+    await expect(canvasElement.querySelector("img")).toBeInTheDocument();
+    await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
+  },
 };
 
 export const StreamingPainting: Story = {
   args: {
     slide: {
-      imageUrl: "/images/wines/wine-red.png",
+      imageUrl: "",
       rank: "1",
       name: "샤또 라 로즈 드",
       comment: "",
@@ -126,6 +133,53 @@ export const StreamingPainting: Story = {
       wine: null,
       isCommitted: false,
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("와인 이미지 준비 중")).toBeInTheDocument();
+    await expect(canvasElement.querySelector("img")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).toBeInTheDocument();
+  },
+};
+
+export const ImageArrives: Story = {
+  render: function ImageArrivalExample() {
+    const [hasImage, setHasImage] = useState(false);
+    return (
+      <div className="w-[320px] max-w-full">
+        <button onClick={() => setHasImage(true)}>이미지 수신</button>
+        <WineRecommendationSlide slide={{ ...detailedSlide, isCommitted: hasImage, wine: { ...detailedSlide.wine!, wineBottleImageUrl: hasImage ? "/images/wines/wine-white.png" : null } }} />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("와인 이미지 준비 중")).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "이미지 수신" }));
+    await expect(canvas.queryByText("와인 이미지 준비 중")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector(".animate-pulse")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector("img")).toHaveAttribute("src", "/images/wines/wine-white.png");
+  },
+};
+
+export const CompletedWithoutImage: Story = {
+  render: function MissingImageCompletionExample() {
+    const [isCommitted, setIsCommitted] = useState(false);
+    return (
+      <div className="w-[320px] max-w-full">
+        <button onClick={() => setIsCommitted(true)}>추천 완료</button>
+        <WineRecommendationSlide slide={{ ...detailedSlide, isCommitted, wine: { ...detailedSlide.wine!, wineBottleImageUrl: null } }} />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "추천 완료" }));
+    await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector("img")).toBeInTheDocument();
+    await expect(canvas.getByText("준비중...")).toBeVisible();
   },
 };
 
@@ -250,4 +304,5 @@ export const WithNullTaste: Story = {
       },
     },
   },
+  play: NoImage.play,
 };

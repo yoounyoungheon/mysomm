@@ -89,6 +89,7 @@ const meta: Meta<typeof MenuCategoryRecommendationPage> = {
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
+    nextjs: { appDirectory: true },
   },
   decorators: [withPageLayout],
 };
@@ -99,6 +100,12 @@ type Story = StoryObj<typeof MenuCategoryRecommendationPage>;
 
 export const Default: Story = {
   beforeEach: stubStoryEnv({}),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "한우 등심 구이" })).toBeVisible();
+    await expect(canvas.queryByRole("status")).not.toBeInTheDocument();
+    await expect(canvasElement.querySelector(".animate-pulse")).not.toBeInTheDocument();
+  },
 };
 
 export const Selected: Story = {
@@ -132,6 +139,15 @@ export const MultipleSelected: Story = {
 
 export const Loading: Story = {
   beforeEach: stubStoryEnv({ pending: true }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const pending = await canvas.findByRole("status", { name: "추천 메뉴를 불러오고 있어요." });
+    await expect(pending).toHaveAttribute("aria-busy", "true");
+    await expect(pending).toHaveAttribute("data-skeleton-variant", "menu");
+    await expect(pending.querySelectorAll(".animate-pulse")).toHaveLength(12);
+    await expect(pending.querySelector("svg")).not.toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "와인 추천받기" })).toBeDisabled();
+  },
 };
 
 export const Error: Story = {

@@ -15,6 +15,7 @@ import {
 } from "@/app/entity/wine-pairing-workflow/model/workflow-snapshot.type";
 import Button from "@/app/shared/ui/atom/button";
 import LoadingSpinner from "@/app/shared/ui/atom/loading-spinner";
+import SkeletonList from "@/app/shared/ui/molecule/skeleton-list";
 import { cn } from "@/app/utils/style/helper";
 import { useMenuRecommendationsQuery } from "../api/use-menu-category-recommendations-query";
 import { useStoredWineSelectionSnapshot } from "../lib/use-stored-recommendation-request";
@@ -285,14 +286,15 @@ function StatePanel({
   message: string;
   action?: ReactNode;
 }) {
+  if (tone === "pending") {
+    return <SkeletonList label={message} />;
+  }
+
   return (
     <div
-      role={tone === "error" ? "alert" : tone === "pending" ? "status" : undefined}
+      role={tone === "error" ? "alert" : undefined}
       className="flex w-full flex-col items-center justify-center gap-4 rounded-[16px] border border-white/55 bg-white/[0.04] px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.78),0_10px_26px_rgba(72,52,112,0.04)] backdrop-blur-2xl backdrop-saturate-150"
     >
-      {tone === "pending" ? (
-        <LoadingSpinner label="추천 메뉴 불러오는 중" className="h-10 w-10" />
-      ) : null}
       <p
         className={cn(
           "text-[15px] leading-relaxed",

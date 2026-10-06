@@ -105,6 +105,9 @@ React key는 `pairingId + wine.id + rank`를 결합한다(pairingId는 slide마�
 
 ## 와인 화면 모델
 
+- 초기 hydration 및 SSE 첫 결과를 기다리는 동안(`어울리는 와인을 찾고 있어요.`) 공통 `SkeletonList`의 wine variant를 표시한다. 점들이 와인병 윤곽을 만드는 이미지와 텍스트 윤곽을 나란히 배치한다. `/wine/keywords`와 색감·톤·reduced-motion 및 상태 안내만 공유하고 화면별 형태는 분리한다. 실제 진행률이 없으므로 퍼센트를 표시하지 않는다.
+- 대기 패널 포함 검증: 채팅·추천 카드·메뉴 추천·공통 와인병/패널 Storybook 26개, 변경 파일 타입 검사 및 ESLint 통과. Chrome 모바일 캡처로 형태를 확인했으며 reduced-motion에서 와인병 점의 animationName이 none인 것도 확인했다.
+
 - 모바일 Safari에서 플립 카드의 반투명·블러 레이어가 겹치지 않도록 비활성 면을 `visibility: hidden`, `pointer-events: none`, `inert`로 숨긴다. 표준·WebKit `backfaceVisibility`도 두 면에 명시하며, 회전 애니메이션과 카드 높이는 유지한다. 버튼 `tabIndex`와 함께 화면·클릭·키보드 접근을 차단하며, 중복 `aria-hidden`은 사용하지 않는다.
 - 앞뒤 전환 시 이전 버튼을 먼저 blur하고, DOM 갱신 직후 `useLayoutEffect`에서 새 면의 전환 버튼에 `focus({ preventScroll: true })`를 적용한다. 숨겨지는 면에 포커스가 남지 않으며, 최초 렌더링·스트리밍 갱신에서는 포커스를 이동하지 않는다.
 - "준비 중인 기능이에요" 안내는 카탈로그 제외 모드이거나 품종·빈티지·도수 정보가 없을 때의 기존 정책이다. 카드 겹침 수정과 별개로 이 조건은 유지한다.
@@ -112,8 +115,9 @@ React key는 `pairingId + wine.id + rank`를 결합한다(pairingId는 slide마�
 
 - 앞면 이미지는 기본 모바일에서 `68px`, 480px 이상에서 `72px` 폭으로 표시한다.
   높이는 각각 `136px`, `144px`이며 `object-contain`으로 원본 비율을 유지한다.
-- `wineBottleImageUrl`이 없으면 catalog fallback 이미지를 준비 중 overlay와 함께 표시하고,
-  스트리밍 중 이미지 자체가 없으면 `Wine` 아이콘을 표시한다.
+- 이미지가 없고 카드가 아직 미확정(`isCommitted=false`)인 추천 진행 중에만 `WineImageSkeleton`을 표시한다. 최종 JSON으로 확정된 후 사진이 없으면 기존 샘플 병 이미지에 어두운 오버레이와 `준비중...` 안내를 표시하며 애니메이션을 유지하지 않는다. 실제 이미지가 있는 카드는 사진을 표시한다.
+- 와인병 점 행렬은 사용자 제공 병 사진에 맞춰 짧은 캡·가는 목·둥근 어깨·수직 몸통·거의 평평한 바닥으로 구성한다. 바닥 모서리만 작게 다듬는다. 촘촘한 SVG 점 격자의 밝기가 순차적으로 변하며 CSS로만 동작한다. `prefers-reduced-motion`에서는 점의 애니메이션을 중단한다.
+- 표시 정책 보완 검증: 추천 진행·사진 수신·이미지 없이 추천 완료 시 샘플/오버레이 복귀를 포함한 추천 카드 11개와 와인병 스토리 2개 통과. 채팅 화면까지 합한 20개 브라우저 테스트 및 변경 파일 타입 검사·ESLint도 통과했다. 모바일 캡처로 가늘고 둥근 어깨·바닥 윤곽을 확인했다.
 - `next/image`의 `sizes`도 실제 표시 폭인 `68px`/`72px`에 맞춘다.
 - 뒷면 테이스트는 `body`/`sweetness`/`tannin`/`acid` 실제 값만 0..5로 그린다.
   null이면 "정보 없음"으로 두고 0으로 그리지 않는다.

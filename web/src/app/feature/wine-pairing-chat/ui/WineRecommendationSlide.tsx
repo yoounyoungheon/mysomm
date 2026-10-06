@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type MouseEventHandler, type Ref } from "react";
 import Image from "next/image";
-import { RotateCcw, Wine } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { PairingStreamWine } from "@/app/entity/wine-pairing/model/wine-pairing.type";
 import {
   formatWineAlcohol,
@@ -11,6 +11,7 @@ import {
 import { resolveWineBottleImage } from "@/app/entity/wine/lib/wine-image";
 import { isCatalogExcluded } from "@/app/shared/config/wine-catalog";
 import { Card } from "@/app/shared/ui/molecule/card";
+import WineImageSkeleton from "@/app/shared/ui/atom/wine-image-skeleton";
 import { cn } from "@/app/utils/style/helper";
 import type { WineRecommendationSlideProps } from "./wine-pairing-chat.props";
 
@@ -139,7 +140,8 @@ function RecommendationFront({
     ? resolveWineBottleImage(slide.wine, slide.wine.id)
     : slide.imageUrl
       ? { src: slide.imageUrl, isPlaceholder: false }
-      : null;
+      : resolveWineBottleImage({ wineBottleImageUrl: null }, slide.name || slide.rank);
+  const showImageSkeleton = !slide.isCommitted && image.isPlaceholder;
 
   return (
     <Card
@@ -163,15 +165,20 @@ function RecommendationFront({
 
       <div className="flex min-h-[136px] items-start gap-4 min-[480px]:min-h-[144px]">
         <div className="relative flex h-[136px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white/70 text-primary min-[480px]:h-[144px] min-[480px]:w-[72px]">
-          {image ? (
+          {showImageSkeleton ? (
+            <>
+              <WineImageSkeleton />
+              <span className="sr-only">와인 이미지 준비 중</span>
+            </>
+          ) : (
             <>
               <Image
-                src={image.src}
-                alt=""
-                fill
-                unoptimized
-                sizes="(min-width: 480px) 72px, 68px"
-                className="object-contain p-1"
+              src={image.src}
+              alt=""
+              fill
+              unoptimized
+              sizes="(min-width: 480px) 72px, 68px"
+              className="object-contain p-1"
               />
               {image.isPlaceholder ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/45">
@@ -179,8 +186,6 @@ function RecommendationFront({
                 </div>
               ) : null}
             </>
-          ) : (
-            <Wine className="h-9 w-9" strokeWidth={1.7} aria-hidden />
           )}
         </div>
 

@@ -255,6 +255,21 @@ export const PairingStreaming: Story = {
   }),
 };
 
+export const WaitingForFirstResult: Story = {
+  beforeEach: stubStoryEnv({
+    seedRequest: true,
+    onPairing: () => sseResponse([], { close: false }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const panel = await canvas.findByRole("status", { name: "어울리는 와인을 찾고 있어요." });
+    await expect(panel).toHaveAttribute("aria-busy", "true");
+    await expect(panel).toHaveAttribute("data-skeleton-variant", "wine");
+    await expect(panel.querySelector("[data-wine-image-skeleton]")).toBeInTheDocument();
+    await expect(canvas.getByPlaceholderText("와인 추천이 끝나면 질문할 수 있어요")).toBeDisabled();
+  },
+};
+
 export const PairingError: Story = {
   beforeEach: stubStoryEnv({
     seedRequest: true,

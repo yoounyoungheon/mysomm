@@ -35,6 +35,10 @@ shell을 유지하고, snapshot이 없거나 invalid(legacy shape 포함)면 API
 
 ## 상태 관리
 
+- hydration 및 AI 추천 조회 중에는 `SkeletonList`의 menu variant로 카테고리 제목과 메뉴 배지 윤곽을 가진 세 개의 카드를 표시한다. `/wine/chat`과 밝은 배경·보라색 톤·부드러운 애니메이션만 공유하며 형태는 메뉴 결과 구조에 맞춘다. reduced-motion에서는 애니메이션을 멈춘다.
+- pending 패널은 `role="status"`, `aria-busy="true"`와 추천 메뉴 로딩 안내를 제공한다. 성공·오류·빈 결과에서는 스켈레톤을 제거하며 결과 선택 및 재시도 로직은 유지한다.
+- 검증: Chrome 모바일 폭에서 페이지 Storybook 5개(로딩·결과 전환·선택·오류)와 변경 파일 타입 검사·ESLint 통과. Storybook에 App Router 문맥을 설정해 실제 페이지의 `useRouter`를 지원한다.
+
 | 상태 | 출처 | 관리 |
 | --- | --- | --- |
 | session ID / pairingWineIds | list snapshot | hydration 후 로컬 읽기 |

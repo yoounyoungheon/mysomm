@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import Button from "@/app/shared/ui/atom/button";
-import LoadingSpinner from "@/app/shared/ui/atom/loading-spinner";
+import SkeletonList from "@/app/shared/ui/molecule/skeleton-list";
 import { cn } from "@/app/utils/style/helper";
 import { useWinePairingConversation } from "../api/use-wine-pairing-conversation";
 import type { PairingTurn } from "../model/conversation.types";
@@ -162,14 +162,13 @@ function StatePanel({
   message: string;
   action?: ReactNode;
 }) {
+  if (tone === "pending") return <SkeletonList label={message} variant="wine" />;
+
   return (
     <div
-      role={tone === "error" ? "alert" : tone === "pending" ? "status" : undefined}
+      role={tone === "error" ? "alert" : undefined}
       className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-white/80 bg-white/45 px-5 py-10 text-center shadow-[0_10px_26px_rgba(72,52,112,0.05)]"
     >
-      {tone === "pending" ? (
-        <LoadingSpinner label="와인 추천 준비 중" className="h-10 w-10" />
-      ) : null}
       <p
         className={cn(
           "text-[15px] leading-relaxed",
