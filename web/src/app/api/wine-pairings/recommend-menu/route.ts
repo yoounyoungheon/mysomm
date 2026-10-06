@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { withServerRequestLog } from "@/app/utils/http/server-log";
 import {
   MenuRecommendationBackendError,
   recommendMenus,
@@ -16,57 +17,76 @@ type RecommendRequestBody = {
   pairingWineIds?: unknown;
 };
 
-export async function POST(request: NextRequest) {
-  if (!(await hasValidBetaAccess(request))) {
-    return createBetaUnauthorizedResponse();
-  }
+export const POST = withServerRequestLog(
+  "wine.recommend-menu",
+  async (request: NextRequest, log) => {
+    if (!(await hasValidBetaAccess(request))) {
+      return createBetaUnauthorizedResponse();
+    }
 
-  const sessionId = request.headers.get(SESSION_ID_HEADER)?.trim() ?? "";
-  if (!isUuidString(sessionId)) {
-    return NextResponse.json(
-      { message: "세션 정보가 올바르지 않습니다. 처음부터 다시 시도해 주세요." },
-      { status: 400 }
-    );
-  }
-
-  if (!request.headers.get("content-type")?.includes("application/json")) {
-    return NextResponse.json(
-      { message: "요청 형식이 올바르지 않습니다." },
-      { status: 400 }
-    );
-  }
-
-  const body = (await request
-    .json()
-    .catch(() => null)) as RecommendRequestBody | null;
-
-  const pairingWineIds = parseWineIds(body?.pairingWineIds);
-  if (!pairingWineIds) {
-    return NextResponse.json(
-      { message: "추천할 와인을 1개 이상 선택해 주세요." },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const recommendedMenus = await recommendMenus(sessionId, {
-      pairingWineIds,
-    });
-    return NextResponse.json({ recommendedMenus });
-  } catch (error) {
-    if (error instanceof MenuRecommendationBackendError) {
+    log.event("auth.accepted");
+    const sessionId = request.headers.get(SESSION_ID_HEADER)?.trim() ?? "";
+    if (!isUuidString(sessionId)) {
       return NextResponse.json(
-        { message: mapRecommendError(error.status) },
-        { status: error.status }
+        {
+          message:
+            "세션 정보가 올바르지 않습니다. 처음부터 다시 시도해 주세요.",
+        },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { message: "추천 메뉴를 불러오지 못했습니다." },
-      { status: 502 }
-    );
-  }
-}
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return NextResponse.json(
+        { message: "요청 형식이 올바르지 않습니다." },
+        { status: 400 },
+      );
+    }
+
+    const body = (await request
+      .json()
+      .catch(() => null)) as RecommendRequestBody | null;
+
+    const pairingWineIds = parseWineIds(body?.pairingWineIds);
+    if (!pairingWineIds) {
+      return NextResponse.json(
+        { message: "추천할 와인을 1개 이상 선택해 주세요." },
+        { status: 400 },
+      );
+    }
+
+    log.event("validation.passed", { wineCount: pairingWineIds.length });
+    try {
+      const recommendedMenus = await recommendMenus(
+        sessionId,
+        {
+          pairingWineIds,
+        },
+        log,
+      );
+      log.event("recommendation.completed", {
+        menuCount: recommendedMenus.length,
+      });
+      return NextResponse.json({ recommendedMenus });
+    } catch (error) {
+      log.error("recommendation.failed", error, {
+        status:
+          error instanceof MenuRecommendationBackendError ? error.status : 502,
+      });
+      if (error instanceof MenuRecommendationBackendError) {
+        return NextResponse.json(
+          { message: mapRecommendError(error.status) },
+          { status: error.status },
+        );
+      }
+
+      return NextResponse.json(
+        { message: "추천 메뉴를 불러오지 못했습니다." },
+        { status: 502 },
+      );
+    }
+  },
+);
 
 /** `pairingWineIds`를 백엔드 계약 shape(비어 있지 않은 UUID[])으로 검증한다. */
 function parseWineIds(input: unknown): string[] | null {

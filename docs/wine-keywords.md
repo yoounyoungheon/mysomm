@@ -1,5 +1,11 @@
 # `/wine/keywords` 메뉴 추천 개발 문서
 
+## 홈 이동과 서버 로그
+
+상단 홈 아이콘은 `/`로 replace 이동하며, 선택 스냅샷 저장 후 `/wine/chat` 진입도 router.replace한다. 추천 조회·선택 검증 정책은 그대로 유지한다.
+
+recommend-menu BFF와 Entity 서버 helper는 요청 시작·인증·입력 검증(선택 개수)·백엔드 호출/상태·DTO 매핑·결과 개수·완료/오류를 요청별 JSON 로그로 남긴다. 세션·선택 ID·메뉴명·원문 오류를 출력하지 않고 timestamp/requestId/elapsedMs와 안전한 지표만 기록한다.
+
 - 라우트: `web/src/app/wine/keywords/page.tsx`
 - 시안: `designs/enhanced_design_2.png`
 - API: `api/mysom-wine-pairing.md` (`POST /v1/wine-pairings/recommend-menu`)

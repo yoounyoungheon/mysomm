@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  loggedBackendFetch,
+  type ServerRequestLog,
+} from "@/app/utils/http/server-log";
 
 import { buildMysomApiUrl } from "@/app/utils/http/server-api";
 import type {
@@ -28,24 +32,29 @@ export class MenuRecommendationBackendError extends Error {
  */
 export async function recommendMenus(
   sessionId: string,
-  request: MenuRecommendationRequest
+  request: MenuRecommendationRequest,
+  log?: ServerRequestLog,
 ): Promise<RecommendedMenu[]> {
-  const response = await fetch(buildMysomApiUrl(RECOMMEND_MENU_PATH), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "X-Session-Id": sessionId,
-    },
-    body: JSON.stringify(request),
-    cache: "no-store",
-    signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-  });
+  const response = await loggedBackendFetch(log, () =>
+    fetch(buildMysomApiUrl(RECOMMEND_MENU_PATH), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Session-Id": sessionId,
+      },
+      body: JSON.stringify(request),
+      cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    }),
+  );
 
   if (!response.ok) {
     throw new MenuRecommendationBackendError(response.status);
   }
 
   const dto = (await response.json()) as MenuRecommendationResponseDto;
-  return mapMenuRecommendationDto(dto);
+  const menus = mapMenuRecommendationDto(dto);
+  log?.event("backend.response.mapped", { menuCount: menus.length });
+  return menus;
 }

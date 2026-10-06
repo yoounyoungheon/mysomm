@@ -29,7 +29,7 @@ export default function NextRecommendationButton({
       sessionId,
       pairingWineIds: [...new Set(selectedWineIds)],
     });
-    router.push("/wine/keywords");
+    router.replace("/wine/keywords");
   };
 
   return (

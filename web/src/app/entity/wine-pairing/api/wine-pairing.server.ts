@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  loggedBackendFetch,
+  type ServerRequestLog,
+} from "@/app/utils/http/server-log";
 
 import { buildMysomApiUrl } from "@/app/utils/http/server-api";
 import type {
@@ -29,37 +33,42 @@ export class WinePairingBackendError extends Error {
 export async function openWinePairingStream(
   request: WinePairingRequest,
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  log?: ServerRequestLog,
 ): Promise<Response> {
-  return openStream(PAIRING_PATH, request, sessionId, signal);
+  return openStream(PAIRING_PATH, request, sessionId, signal, log);
 }
 
 /** 서버 전용 후속 채팅 스트림 오픈 helper. */
 export async function openWinePairingChatStream(
   request: WinePairingChatRequest,
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  log?: ServerRequestLog,
 ): Promise<Response> {
-  return openStream(CHAT_PATH, request, sessionId, signal);
+  return openStream(CHAT_PATH, request, sessionId, signal, log);
 }
 
 async function openStream(
   path: string,
   body: unknown,
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  log?: ServerRequestLog,
 ): Promise<Response> {
-  const response = await fetch(buildMysomApiUrl(path), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-      [SESSION_ID_HEADER]: sessionId,
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-    signal,
-  });
+  const response = await loggedBackendFetch(log, () =>
+    fetch(buildMysomApiUrl(path), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        [SESSION_ID_HEADER]: sessionId,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal,
+    }),
+  );
 
   if (!response.ok || !response.body) {
     // 오류 body는 노출하지 않고 상태 코드만 전달한다.

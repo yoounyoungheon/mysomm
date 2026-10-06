@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
+vi.mock("server-only", () => ({}));
 import { POST } from "./route";
 
 const TEST_CODE = "valid-beta-code";
@@ -18,6 +20,8 @@ describe("POST /api/beta-auth", () => {
 
   it("sets HttpOnly access and refresh cookies for a valid access code", async () => {
     const response = await POST(createRequest(TEST_CODE));
+    if (!(response instanceof NextResponse))
+      throw new Error("Expected a NextResponse with cookies");
     const body = await response.json();
     const accessCookie = response.cookies.get("beta_access");
     const refreshCookie = response.cookies.get("beta_refresh");
@@ -58,7 +62,7 @@ describe("POST /api/beta-auth", () => {
       new Request("http://localhost/api/beta-auth", {
         method: "POST",
         body: TEST_CODE,
-      })
+      }),
     );
 
     expect(response.status).toBe(400);
@@ -66,7 +70,9 @@ describe("POST /api/beta-auth", () => {
   });
 
   it("returns a safe 500 response when the access code is missing", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     delete process.env.BETA_ACCESS_CODE;
 
     const response = await POST(createRequest(TEST_CODE));
@@ -77,18 +83,25 @@ describe("POST /api/beta-auth", () => {
       message: "인증을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
     });
     expect(JSON.stringify(body)).not.toContain(TEST_SECRET);
-    expect(consoleError).toHaveBeenCalledOnce();
+    expect(
+      consoleError.mock.calls.map(([entry]) => JSON.parse(entry).event),
+    ).toContain("auth.configuration.missing");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(TEST_SECRET);
   });
 
   it("returns a safe 500 response when the JWT secret is invalid", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     process.env.BETA_JWT_SECRET = "short";
 
     const response = await POST(createRequest(TEST_CODE));
 
     expect(response.status).toBe(500);
     expect(response.headers.get("set-cookie")).toBeNull();
-    expect(consoleError).toHaveBeenCalledOnce();
+    expect(
+      consoleError.mock.calls.map(([entry]) => JSON.parse(entry).event),
+    ).toContain("auth.configuration.invalid");
   });
 });
 

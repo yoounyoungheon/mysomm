@@ -1,5 +1,15 @@
 # `/wine/chat` 페어링·후속 대화 개발 문서
 
+## 홈 이동과 서버 로그
+
+상단 PageHeader는 뒤로가기 대신 홈 아이콘을 제공하며 `/`로 replace 이동한다. 이전 단계에서 진입할 때도 replace를 사용해 완료한 입력 화면을 히스토리에 추가하지 않는다.
+
+pairing/chat BFF는 server-only `server-log.ts`로 요청 시작, 인증 통과, 검증, 백엔드 호출 및 응답 준비를 JSON 로그로 남긴다. 요청별 requestId·timestamp·elapsedMs·상태·항목 개수를 공유한다. SSE 본문을 변경/파싱/전체 버퍼링하지 않고 종료·취소·연결 중단·오류 및 chunk/byte 합계를 관찰한다. 스트림 시작은 완료로 기록하지 않는다.
+
+토큰·쿠키·세션 ID·메시지·메뉴명·원문 오류·내부 URL은 기록하지 않는다. 로그는 Next.js stdout/stderr에 출력되며 로컬 실행에서는 `/private/tmp/mysomm-web-dev.log`에 쌓인다. middleware 인증에서 먼저 거절된 요청은 BFF에 도달하지 않아 해당 route 로그가 없다.
+
+검증: 전체 단위 테스트 98개(서버 로거 9개 포함), 홈/단계 라우팅 Storybook 12개, 변경 파일 타입·ESLint 통과. 로컬 BFF 입력 검증 실패 로그와 세 페이지의 홈 링크 렌더링을 확인했다.
+
 - 라우트: `web/src/app/wine/chat/page.tsx`
 - 시안: `designs/enhanced_design_3_1.png`, `designs/enhanced_design_3_2.png`
 - API: `api/mysom-wine-pairing.md` (`/pairing`, `/chat`, SSE)

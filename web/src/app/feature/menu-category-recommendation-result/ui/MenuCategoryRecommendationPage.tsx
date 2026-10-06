@@ -92,7 +92,7 @@ function RecommendationBody({
       wineIds: snapshot.pairingWineIds,
       menuNames: validSelectedNames,
     });
-    router.push("/wine/chat");
+    router.replace("/wine/chat");
   };
 
   return (

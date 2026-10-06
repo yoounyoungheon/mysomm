@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function WineAiPage() {
   return (
     <div className="relative flex h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] max-h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col overflow-hidden bg-canvas bg-violet-haze text-ink-page">
-      <PageHeader title="와인 리스트 선택" routeBackPath="/" variant="centered" />
+      <PageHeader title="와인 리스트 선택" navigation="home" variant="centered" />
       <WineListSelectPage />
     </div>
   );

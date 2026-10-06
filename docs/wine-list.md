@@ -1,5 +1,11 @@
 # `/wine/list` 와인 메뉴 추출 개발 문서
 
+## 홈 이동과 서버 로그
+
+상단 홈 아이콘은 `/`로 replace 이동한다. 와인 선택 스냅샷을 저장한 후 `/wine/keywords`로 router.replace한다. 선택이 없으면 이동하지 않는다.
+
+extract-wine-menu BFF는 요청 시작·인증 통과·이미지 검증 완료(장수/총 바이트)·백엔드 호출/응답·응답 검증 실패·카탈로그 제외 플래그·결과 개수·HTTP 상태를 요청별 JSON 로그로 출력한다. 파일명·이미지·세션 ID·결과 원문은 남기지 않는다. 공통 서버 로거의 timestamp/requestId/elapsedMs로 처리 흐름을 추적한다. API 및 기존 UI 동작은 유지한다.
+
 - 라우트: `web/src/app/wine/list/page.tsx`
 - 시안: `designs/enhanced_design_1.png`
 - API: `api/mysom-ocr.md` (`POST /v1/wine-pairings/extract-wine-menu`)

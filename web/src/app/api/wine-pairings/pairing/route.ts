@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { withServerRequestLog } from "@/app/utils/http/server-log";
 import {
   openWinePairingStream,
   WinePairingBackendError,
@@ -24,76 +25,91 @@ type PairingRequestBody = {
   menuNames?: unknown;
 };
 
-export async function POST(request: NextRequest) {
-  if (!(await hasValidBetaAccess(request))) {
-    return createBetaUnauthorizedResponse();
-  }
+export const POST = withServerRequestLog(
+  "wine.pairing",
+  async (request: NextRequest, log) => {
+    if (!(await hasValidBetaAccess(request))) {
+      return createBetaUnauthorizedResponse();
+    }
 
-  const sessionId = request.headers.get(SESSION_ID_HEADER)?.trim() ?? "";
-  if (!isUuidString(sessionId)) {
-    return NextResponse.json(
-      { message: "세션 정보가 올바르지 않습니다. 처음부터 다시 시도해 주세요." },
-      { status: 400 }
-    );
-  }
-
-  if (!request.headers.get("content-type")?.includes("application/json")) {
-    return NextResponse.json(
-      { message: "요청 형식이 올바르지 않습니다." },
-      { status: 400 }
-    );
-  }
-
-  const body = (await request
-    .json()
-    .catch(() => null)) as PairingRequestBody | null;
-
-  const pairingRequest = parsePairingRequest(body);
-  if (!pairingRequest) {
-    return NextResponse.json(
-      { message: "와인과 메뉴를 선택해 주세요." },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const backendResponse = await openWinePairingStream(
-      pairingRequest,
-      sessionId,
-      request.signal
-    );
-
-    // 백엔드 SSE body를 버퍼링 없이 그대로 파이프한다.
-    return new Response(backendResponse.body, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-store",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
-      },
-    });
-  } catch (error) {
-    if (error instanceof WinePairingBackendError) {
+    log.event("auth.accepted");
+    const sessionId = request.headers.get(SESSION_ID_HEADER)?.trim() ?? "";
+    if (!isUuidString(sessionId)) {
       return NextResponse.json(
-        { message: mapPairingError(error.status) },
-        { status: error.status }
+        {
+          message:
+            "세션 정보가 올바르지 않습니다. 처음부터 다시 시도해 주세요.",
+        },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { message: "와인 추천을 불러오지 못했습니다." },
-      { status: 502 }
-    );
-  }
-}
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return NextResponse.json(
+        { message: "요청 형식이 올바르지 않습니다." },
+        { status: 400 },
+      );
+    }
+
+    const body = (await request
+      .json()
+      .catch(() => null)) as PairingRequestBody | null;
+
+    const pairingRequest = parsePairingRequest(body);
+    if (!pairingRequest) {
+      return NextResponse.json(
+        { message: "와인과 메뉴를 선택해 주세요." },
+        { status: 400 },
+      );
+    }
+
+    log.event("validation.passed", {
+      wineCount: pairingRequest.wineIds.length,
+      menuCount: pairingRequest.menuNames.length,
+    });
+    try {
+      const backendResponse = await openWinePairingStream(
+        pairingRequest,
+        sessionId,
+        request.signal,
+        log,
+      );
+
+      // 백엔드 SSE body를 버퍼링 없이 그대로 파이프한다.
+      return new Response(backendResponse.body, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-store",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    } catch (error) {
+      log.error("pairing.failed", error, {
+        status: error instanceof WinePairingBackendError ? error.status : 502,
+      });
+      if (error instanceof WinePairingBackendError) {
+        return NextResponse.json(
+          { message: mapPairingError(error.status) },
+          { status: error.status },
+        );
+      }
+
+      return NextResponse.json(
+        { message: "와인 추천을 불러오지 못했습니다." },
+        { status: 502 },
+      );
+    }
+  },
+);
 
 /**
  * 페어링 요청 body를 백엔드 계약 shape으로 검증한다.
  * `wineIds[]`는 UUID, `menuNames[]`는 공백 아닌 문자열이며 둘 다 비어 있을 수 없다.
  */
 function parsePairingRequest(
-  body: PairingRequestBody | null
+  body: PairingRequestBody | null,
 ): WinePairingRequest | null {
   if (!body) return null;
 

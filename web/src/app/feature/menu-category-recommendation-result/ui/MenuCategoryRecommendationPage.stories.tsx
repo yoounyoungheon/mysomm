@@ -1,4 +1,5 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
+import { getRouter } from "@storybook/nextjs-vite/navigation.mock";
 import { expect, userEvent, within } from "storybook/test";
 import {
   clearWinePairingSnapshot,
@@ -118,6 +119,11 @@ export const Selected: Story = {
     );
 
     await expect(canvas.getByText("1개 선택")).toHaveClass("text-ink-card");
+    getRouter().replace.mockClear();
+    getRouter().push.mockClear();
+    await userEvent.click(canvas.getByRole("button", { name: "와인 추천받기" }));
+    await expect(getRouter().replace).toHaveBeenCalledWith("/wine/chat");
+    await expect(getRouter().push).not.toHaveBeenCalled();
   },
 };
 
