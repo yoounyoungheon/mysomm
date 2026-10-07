@@ -116,8 +116,11 @@ export const NoImage: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("준비중...")).toBeVisible();
-    await expect(canvasElement.querySelector("img")).toBeInTheDocument();
+    await expect(canvas.getByText("이미지 준비중")).toBeVisible();
+    await expect(canvasElement.querySelector("img")).toHaveAttribute("src", "/images/wines/wine-bottle.png");
+    await expect(canvas.getByText("이미지 준비중")).toHaveStyle({ whiteSpace: "pre-line" });
+    const imageRect = canvasElement.querySelector("img")!.parentElement!.getBoundingClientRect();
+    expect(imageRect.width / imageRect.height).toBeCloseTo(3 / 4, 2);
     await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
   },
 };
@@ -178,8 +181,8 @@ export const CompletedWithoutImage: Story = {
     await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "추천 완료" }));
     await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
-    await expect(canvasElement.querySelector("img")).toBeInTheDocument();
-    await expect(canvas.getByText("준비중...")).toBeVisible();
+    await expect(canvasElement.querySelector("img")).toHaveAttribute("src", "/images/wines/wine-bottle.png");
+    await expect(canvas.getByText("이미지 준비중")).toBeVisible();
   },
 };
 

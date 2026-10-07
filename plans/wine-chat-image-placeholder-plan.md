@@ -1,5 +1,9 @@
 # `/wine/chat` 추천 이미지 스켈레톤
 
+추천 카드 이미지 슬롯도 가로:세로 3:4 비율로 맞춘다. 기존 폭 68px(480px 이상 72px)은 유지하고 높이는 aspect-ratio로 결정한다. fallback·실제 사진·추천 중 스켈레톤에 동일한 슬롯을 적용하며 카드 전체 높이와 텍스트 배치는 유지한다.
+
+2026-10-08 변경: 추천 카드의 완료 후 이미지 누락 fallback만 `/images/wines/wine-bottle.png`로 교체한다. 기존 shared Card·Image 슬롯과 `bg-black/45` 오버레이를 유지하고 문구는 `이미지\n준비중` 두 줄로 중앙 정렬한다. 진행 중 점 스켈레톤·실제 사진·상세 뒤집기·API 계약은 유지한다. 공용 resolveWineBottleImage와 wine/list에는 영향을 주지 않는다. NoImage/CompletedWithoutImage 및 사진 수신 전환 스토리로 검증한다.
+
 최종 실루엣 기준: 사용자가 추가로 제공한 병 사진처럼 짧은 캡·가는 목·둥글게 벌어지는 어깨·수직 몸통·거의 평평한 바닥으로 구성한다. 바닥은 끝을 좁히지 않고 모서리만 작게 다듬는다. 표시 조건과 색·애니메이션은 유지한다.
 
 - 기준: 사용자 제공 wine/list 로딩 스크린샷 및 `designs/enhanced_design_3_1.png`의 카드 이미지 영역.

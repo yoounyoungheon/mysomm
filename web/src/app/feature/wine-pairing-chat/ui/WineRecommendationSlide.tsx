@@ -164,7 +164,7 @@ function RecommendationFront({
       ) : null}
 
       <div className="flex min-h-[136px] items-start gap-4 min-[480px]:min-h-[144px]">
-        <div className="relative flex h-[136px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white/70 text-primary min-[480px]:h-[144px] min-[480px]:w-[72px]">
+        <div className="relative flex aspect-[3/4] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white/70 text-primary min-[480px]:w-[72px]">
           {showImageSkeleton ? (
             <>
               <WineImageSkeleton />
@@ -173,7 +173,7 @@ function RecommendationFront({
           ) : (
             <>
               <Image
-              src={image.src}
+              src={image.isPlaceholder ? "/images/wines/wine-bottle.png" : image.src}
               alt=""
               fill
               unoptimized
@@ -182,7 +182,7 @@ function RecommendationFront({
               />
               {image.isPlaceholder ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-                  <span className="text-[9px] font-bold text-white">준비중...</span>
+                  <span className="whitespace-pre-line text-center text-[9px] font-bold text-white">{"이미지\n준비중"}</span>
                 </div>
               ) : null}
             </>

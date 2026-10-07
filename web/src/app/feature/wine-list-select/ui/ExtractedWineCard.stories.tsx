@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
 import type { ExtractedWine } from "@/app/entity/wine/model/wine.type";
 import ExtractedWineCard from "./ExtractedWineCard";
 
@@ -32,6 +33,7 @@ const meta: Meta<typeof ExtractedWineCard> = {
   args: {
     wine: baseWine,
     isSelected: false,
+    onToggle: fn(),
   },
   render: (args) => (
     <div className="w-[360px] max-w-full bg-background-03 p-4">
@@ -44,7 +46,16 @@ export default meta;
 
 type Story = StoryObj<typeof ExtractedWineCard>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvasElement, args }) => {
+    const image = canvasElement.querySelector("img")!;
+    await expect(image).toHaveAttribute("src", "/images/wines/wine-white.png");
+    const rect = image.parentElement!.getBoundingClientRect();
+    expect(rect.width / rect.height).toBeCloseTo(3 / 4, 2);
+    await userEvent.click(within(canvasElement).getByRole("checkbox"));
+    await expect(args.onToggle).toHaveBeenCalledWith(baseWine.id);
+  },
+};
 
 export const Selected: Story = {
   args: { isSelected: true },
@@ -53,6 +64,12 @@ export const Selected: Story = {
 export const NotCatalogMatched: Story = {
   args: {
     wine: { ...baseWine, isCatalogMatched: false, wineBottleImageUrl: null },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector("img")).toHaveAttribute("src", "/images/wines/wine-bottle.png");
+    await expect(canvas.getByText("이미지 준비중")).toBeVisible();
+    await expect(canvas.getByText("이미지 준비중")).toHaveStyle({ whiteSpace: "pre-line" });
   },
 };
 

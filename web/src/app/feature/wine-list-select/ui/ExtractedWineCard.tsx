@@ -41,18 +41,18 @@ export default function ExtractedWineCard({
             : "border-white/70 bg-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_30px_rgba(72,52,112,0.06)] hover:border-white/80 hover:bg-white/[0.18]"
         )}
       >
-        <div className="relative aspect-[3/7] w-[54px] shrink-0 overflow-hidden rounded-[12px] bg-white/70">
+        <div className="relative aspect-[3/4] w-[72px] shrink-0 overflow-hidden rounded-[12px] bg-white/70">
           <Image
-            src={image.src}
+            src={image.isPlaceholder ? "/images/wines/wine-bottle.png" : image.src}
             alt=""
             fill
-            sizes="54px"
-            className="object-cover"
+            sizes="72px"
+            className="object-contain p-1"
             unoptimized
           />
           {image.isPlaceholder ? (
             <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-              <span className="text-[9px] font-bold text-white">준비중...</span>
+              <span className="whitespace-pre-line text-center text-[9px] font-bold text-white">{"이미지\n준비중"}</span>
             </div>
           ) : null}
         </div>

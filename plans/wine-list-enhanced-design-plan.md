@@ -1,5 +1,14 @@
 # `/wine/list` 세션 기반 와인 메뉴 추출 설계
 
+## 2026-10-08 이미지 표시 보완
+
+- 결과 목록의 보이는 제목 대신 shared/ui Button으로 전체 선택/해제 액션을 표시한다. 모든 현재 후보가 선택되었으면 전체 해제, 일부/미선택이면 미선택 후보만 추가 선택한다. 기존 toggleWineId 저장 경로와 선택 개수 표시를 유지하며 제목은 sr-only로 남긴다. 부분 선택·전체 선택·빈 목록·연속 토글을 Storybook으로 검증한다.
+
+- `ExtractedWineCard`의 이미지 슬롯을 너비 72px·가로:세로 3:4 직사각형으로 변경하고 object-contain으로 병 전체를 표시한다.
+- 실제 이미지가 없으면 `/images/wines/wine-bottle.png`와 기존 `bg-black/45` 오버레이, `이미지\n준비중` 두 줄 안내를 표시한다.
+- shared/ui Card, checkbox 선택·클라이언트 경계·API 흐름은 유지한다. 새로운 상태나 API 호출은 추가하지 않는다.
+- style-implementation/css-only-state/storybook-authoring 가이드를 적용하고 사진 유무·긴 이름 스토리와 비율·선택 동작을 검증한다.
+
 ## 1. 범위와 기준
 
 - 대상 라우트: `web/src/app/wine/list/page.tsx`
