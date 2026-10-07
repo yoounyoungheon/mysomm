@@ -164,7 +164,7 @@ function RecommendationFront({
       ) : null}
 
       <div className="flex min-h-[136px] items-start gap-4 min-[480px]:min-h-[144px]">
-        <div className="relative flex aspect-[3/4] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white/70 text-primary min-[480px]:w-[72px]">
+        <div className="relative flex h-[136px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white/70 text-primary min-[480px]:h-[144px] min-[480px]:w-[72px]">
           {showImageSkeleton ? (
             <>
               <WineImageSkeleton />

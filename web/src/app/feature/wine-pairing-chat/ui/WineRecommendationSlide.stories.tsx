@@ -120,7 +120,7 @@ export const NoImage: Story = {
     await expect(canvasElement.querySelector("img")).toHaveAttribute("src", "/images/wines/wine-bottle.png");
     await expect(canvas.getByText("이미지 준비중")).toHaveStyle({ whiteSpace: "pre-line" });
     const imageRect = canvasElement.querySelector("img")!.parentElement!.getBoundingClientRect();
-    expect(imageRect.width / imageRect.height).toBeCloseTo(3 / 4, 2);
+    expect(imageRect.width / imageRect.height).toBeCloseTo(1 / 2, 2);
     await expect(canvasElement.querySelector("[data-wine-image-skeleton]")).not.toBeInTheDocument();
   },
 };

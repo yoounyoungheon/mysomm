@@ -35,7 +35,7 @@ export default function ExtractedWineSection({
           radius="full"
           disabled={wines.length === 0}
           onClick={toggleAll}
-          className="min-h-11 border border-white/70 bg-white/30 px-3 py-2 text-[13px] font-bold text-primary shadow-none hover:bg-white/50"
+          className="h-9 border border-white/70 bg-white/30 px-3 py-1 text-[13px] font-bold text-primary shadow-none hover:bg-white/50"
         >
           {allSelected ? "전체 해제" : "전체 선택"}
         </Button>
