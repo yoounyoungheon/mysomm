@@ -3,6 +3,7 @@ import {
   WINE_MENU_IMAGE_ACCEPT,
 } from "@/app/entity/wine/model/wine-menu-image";
 import Button from "@/app/shared/ui/atom/button";
+import LoadingSpinner from "@/app/shared/ui/atom/loading-spinner";
 import PhotoPicker from "@/app/shared/ui/molecule/photo-picker";
 import { cn } from "@/app/utils/style/helper";
 import type { WineMenuPhotoSectionProps } from "./wine-list-select.props";
@@ -47,6 +48,7 @@ export default function WineMenuPhotoSection({
         radius="lg"
         disabled={isAnalyzeDisabled}
         aria-busy={isAnalyzing}
+        aria-label={isAnalyzing ? "와인 리스트 분석 중" : "와인 리스트 분석"}
         className={cn(
           "mt-3 h-[48px] w-full rounded-[18px] border border-white/55 bg-white/[0.04] px-4 py-3 text-[14px] font-bold text-ink-emphasis shadow-[inset_0_1px_0_rgba(255,255,255,0.82),inset_0_-1px_0_rgba(110,58,245,0.06),0_14px_34px_rgba(72,52,112,0.045)] backdrop-blur-2xl backdrop-saturate-150 hover:bg-white/[0.09] disabled:!opacity-100",
           isAnalyzeDisabled &&
@@ -55,7 +57,9 @@ export default function WineMenuPhotoSection({
         )}
         onClick={onAnalyze}
       >
-        {isAnalyzing ? "분석 중" : "와인 리스트 분석"}
+        {isAnalyzing ? (
+          <LoadingSpinner label="와인 리스트 분석 중" className="h-5 w-5 text-primary [&_svg]:size-5" />
+        ) : "와인 리스트 분석"}
       </Button>
 
       {errorMessage ? (

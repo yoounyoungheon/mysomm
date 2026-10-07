@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import type { MenuImagePreview } from "@/app/entity/wine/model/wine.type";
 import WineMenuPhotoSection from "./WineMenuPhotoSection";
 
@@ -47,13 +48,26 @@ export default meta;
 type Story = StoryObj<typeof WineMenuPhotoSection>;
 
 export const Empty: Story = {};
+export const Default: Story = {};
 
 export const WithPhotos: Story = {
   args: { previews },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("button", { name: "와인 리스트 분석" })).toBeEnabled();
+  },
 };
 
 export const Analyzing: Story = {
   args: { previews, isAnalyzing: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = canvas.getByRole("button", { name: "와인 리스트 분석 중" });
+    await expect(button).toBeDisabled();
+    await expect(button).toHaveAttribute("aria-busy", "true");
+    await expect(within(button).getByRole("status", { name: "와인 리스트 분석 중" })).toBeVisible();
+    await expect(button.querySelector(".animate-spin")).toBeInTheDocument();
+    expect(button.textContent).toBe("");
+  },
 };
 
 export const InvalidFile: Story = {
