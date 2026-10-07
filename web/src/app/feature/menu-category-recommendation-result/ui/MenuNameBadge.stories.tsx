@@ -8,6 +8,10 @@ const meta: Meta<typeof MenuNameBadge> = {
   parameters: { layout: "centered" },
   argTypes: {
     name: { control: "text" },
+    iconSrc: {
+      control: "text",
+      description: "뱃지 안에 표시할 18px 음식 아이콘 경로",
+    },
     isSelected: { control: "boolean" },
     onToggle: { action: "toggle", control: false },
   },
@@ -33,5 +37,10 @@ export const Selected: Story = {
 };
 
 export const LongName: Story = {
-  args: { name: "제철 해산물 모둠과 마늘 오일 바게트를 곁들인 지중해식 플래터" },
+  args: {
+    name: "제철 해산물 모둠과 마늘 오일 바게트를 곁들인 지중해식 플래터",
+  },
+};
+export const WithIcon: Story = {
+  args: { iconSrc: "/images/menu-category/seafood.png" },
 };

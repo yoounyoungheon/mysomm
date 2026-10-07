@@ -18,7 +18,7 @@ export type WineSelectionSnapshot = {
 
 /**
  * `/wine/keywords` → `/wine/chat` handoff.
- * 같은 세션의 선택 wine ID와 추천 응답에서 고른 menu name을 담는다.
+ * 같은 세션의 선택 wine ID와 추천·고정·직접 입력에서 고른 음식명을 담는다.
  */
 export type WinePairingSnapshot = {
   version: typeof WORKFLOW_SNAPSHOT_VERSION;

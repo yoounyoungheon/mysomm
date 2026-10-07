@@ -14,7 +14,9 @@ export interface RecommendedMenuListProps {
 
 export interface MenuNameBadgeProps {
   name: string;
+  iconSrc?: string;
   isSelected?: boolean;
   onToggle?: (name: string) => void;
+  onRemove?: (name: string) => void;
   className?: string;
 }

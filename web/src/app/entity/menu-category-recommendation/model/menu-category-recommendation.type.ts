@@ -54,7 +54,7 @@ export type MenuRecommendationRequest = {
 };
 
 /**
- * 추천 메뉴 한 건. 다음 단계 pairing 요청의 허용 목록이며,
+ * 추천 메뉴 한 건. 다음 단계 pairing 입력의 한 출처이며,
  * pairing에는 선택 항목의 `name`을 철자까지 그대로 전달한다.
  */
 export type RecommendedMenu = {

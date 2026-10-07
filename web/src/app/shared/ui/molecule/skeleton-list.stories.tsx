@@ -18,7 +18,7 @@ const meta: Meta<typeof SkeletonList> = {
     },
     variant: {
       control: "select",
-      options: ["menu", "wine"],
+      options: ["menu", "menu-rows", "menu-chips", "wine"],
       description: "메뉴 카테고리 또는 와인 생성 대기 디자인입니다.",
     },
   },
@@ -41,4 +41,20 @@ export const Default: Story = {
 };
 export const Wine: Story = {
   args: { label: "어울리는 와인을 찾고 있어요.", variant: "wine" },
+};
+export const MenuRows: Story = {
+  args: { variant: "menu-rows" },
+  play: async ({ canvasElement }) => {
+    const panel = within(canvasElement).getByRole("status");
+    await expect(panel).toHaveAttribute("data-skeleton-variant", "menu-rows");
+    await expect(panel.querySelectorAll(".animate-pulse")).toHaveLength(9);
+  },
+};
+export const MenuChips: Story = {
+  args: { variant: "menu-chips" },
+  play: async ({ canvasElement }) => {
+    const panel = within(canvasElement).getByRole("status");
+    await expect(panel).toHaveAttribute("data-skeleton-variant", "menu-chips");
+    await expect(panel.querySelectorAll(".animate-pulse")).toHaveLength(12);
+  },
 };

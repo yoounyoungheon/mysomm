@@ -36,8 +36,8 @@
 핵심 불변식:
 
 - `extract-wine-menu` 응답의 `wines[].id`만 이후 `pairingWineIds`와 `wineIds`에 사용한다.
-- `recommend-menu` 응답의 `recommendedMenus[].name`만 `pairing.menuNames`에 사용한다.
-- 다른 세션의 wine ID나 현재 추천 결과에 없는 menu name은 `404`다.
+- `pairing.menuNames`에는 AI 추천 name, 고정 카테고리명, 직접 입력 음식명을 사용한다. 요청 shape는 유지하며 2026-10-07 사용자 확인을 반영했다.
+- 다른 세션의 wine ID는 허용하지 않는다. 메뉴명은 현재 추천 목록에 한정하지 않는다.
 - `/chat`은 페어링이 완료되어 세션 상태가 채팅 가능해진 뒤 호출한다.
 - 프론트는 페이지마다 새 ID를 만들지 않고 한 워크플로 전체에서 같은 `X-Session-Id`를 유지한다.
 

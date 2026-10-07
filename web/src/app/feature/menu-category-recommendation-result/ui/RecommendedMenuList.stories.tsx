@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import type { RecommendedMenu } from "@/app/entity/menu-category-recommendation/model/menu-category-recommendation.type";
 import RecommendedMenuList from "./RecommendedMenuList";
 
@@ -38,7 +39,35 @@ export default meta;
 
 type Story = StoryObj<typeof RecommendedMenuList>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const short = canvas.getByRole("button", { name: "감바스" });
+    const long = canvas.getByRole("button", { name: "해산물 파전" });
+    expect(short.getBoundingClientRect().width).toBeLessThan(
+      long.getBoundingClientRect().width,
+    );
+    expect(
+      getComputedStyle(short.parentElement!.parentElement!.parentElement!)
+        .flexWrap,
+    ).toBe("wrap");
+  },
+};
+
+export const LongName: Story = {
+  args: {
+    menus: [
+      {
+        name: "아주 긴 이름의 음식도 화면 바깥으로 넘치지 않고 뱃지 안에서 자연스럽게 줄바꿈되는 추천 메뉴",
+        category: "붉은 고기",
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const list = within(canvasElement).getByRole("list");
+    expect(list.scrollWidth).toBeLessThanOrEqual(list.clientWidth);
+  },
+};
 
 export const SingleCategory: Story = {
   args: {

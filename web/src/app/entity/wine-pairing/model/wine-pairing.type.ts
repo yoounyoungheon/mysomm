@@ -2,7 +2,7 @@ import type { WineCurrency } from "@/app/entity/wine/model/wine.type";
 
 /**
  * `POST /v1/wine-pairings/pairing` 요청 body.
- * `wineIds`는 추출 응답의 wine UUID, `menuNames`는 추천 응답의 name 부분집합이다.
+ * `wineIds`는 추출 응답의 wine UUID, `menuNames`는 추천·고정·직접 입력에서 선택한 음식명이다.
  */
 export type WinePairingRequest = {
   wineIds: string[];

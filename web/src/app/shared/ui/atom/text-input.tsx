@@ -3,8 +3,7 @@ import React from "react";
 import { Input } from "../shadcn/input";
 import { cn } from "@/app/utils/style/helper";
 
-export interface TextInputProps
-  extends React.ComponentPropsWithRef<"input"> {
+export interface TextInputProps extends React.ComponentPropsWithRef<"input"> {
   type?: "text" | "password" | "number";
   withIcon?: React.ElementType;
   status?: "default" | "error" | "success";
@@ -42,31 +41,27 @@ function TextInput({
               status === "error"
                 ? "text-error-main"
                 : status === "success"
-                ? "text-primary-main"
-                : "text-text-03"
+                  ? "text-primary-main"
+                  : "text-text-03",
             )}
           >
             {label}
           </label>
         ) : null}
         <div className="relative w-full">
-          <div
-            className={cn(
-              disabled ? "bg-gray-1" : "bg-white",
-              "flex flex-row gap-1 items-center"
-            )}
-          >
+          <div className="flex flex-row items-center gap-1">
             <Input
               {...props}
               ref={ref}
               type={type}
               className={cn(
                 "w-full rounded-3xl border text-text-03 p-1.5 resize-none focus:outline-none",
+                disabled ? "bg-gray-1" : "bg-white",
                 status === "error"
                   ? "border-error-main focus:border-error-main"
                   : status === "success"
-                  ? "border-primary-main focus:border-primary-main"
-                  : "border-text-03 focus:border-text-03",
+                    ? "border-primary-main focus:border-primary-main"
+                    : "border-text-03 focus:border-text-03",
                 "shadow-none",
                 "py-2",
                 "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
@@ -75,7 +70,7 @@ function TextInput({
                 disabled
                   ? "text-gray-6 placeholder:text-gray-6"
                   : "placeholder:text-gray-6",
-                className
+                className,
               )}
               placeholder={placeholder}
               disabled={disabled}
@@ -99,8 +94,8 @@ function TextInput({
                   status === "error"
                     ? "text-error-main"
                     : status === "success"
-                    ? "text-primary-main"
-                    : "text-text-03"
+                      ? "text-primary-main"
+                      : "text-text-03",
                 )}
               />
             </button>
@@ -113,7 +108,7 @@ function TextInput({
               key={index}
               className={cn(
                 "mt-1 text-sm",
-                status === "error" ? "text-error-main" : "text-text-03"
+                status === "error" ? "text-error-main" : "text-text-03",
               )}
             >
               {message}

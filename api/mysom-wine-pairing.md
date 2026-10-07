@@ -63,7 +63,7 @@ type MenuRecommendationResponse = {
 }
 ```
 
-결과는 AI rank 순으로 정렬되고 정규화된 menu name 기준으로 중복 제거되며 최대 6개다. 이 응답은 단순 표시 데이터가 아니라 다음 단계의 허용 목록이다. 페어링 요청에는 선택 항목의 `name`을 철자까지 그대로 전달한다.
+결과는 AI rank 순으로 정렬되고 정규화된 menu name 기준으로 중복 제거되며 최대 6개다. AI 추천에서 선택한 항목은 `name`을 그대로 전달한다. 2026-10-07 사용자 확인에 따라 페어링의 menuNames는 이 추천 목록에 한정되지 않으며 고정 카테고리·직접 입력 음식도 허용한다. HTTP/DTO shape는 변경하지 않는다.
 
 ### Error cases
 
@@ -91,7 +91,7 @@ Accept: text/event-stream
 ```ts
 type WinePairingRequest = {
   wineIds: string[]; // extract response의 ID
-  menuNames: string[]; // recommend response의 name
+  menuNames: string[]; // AI 추천 메뉴명, 고정 카테고리명 또는 직접 입력 음식명
 };
 ```
 
@@ -102,7 +102,7 @@ type WinePairingRequest = {
 }
 ```
 
-두 배열은 비어 있을 수 없다. `menuNames`는 자유 입력 카테고리 배열이 아니라 현재 세션에 저장된 `recommendedMenus[].name`의 부분집합이다.
+두 배열은 비어 있을 수 없다. `menuNames`는 AI 추천 메뉴명뿐 아니라 고정 카테고리명·직접 입력 음식명을 받는다(2026-10-07 사용자 확인). 요청 필드와 타입은 그대로다. 저장소 밖 로컬 백엔드 소스는 아직 이전 버전이며 해당 업데이트의 fetch는 별도 작업이다.
 
 ### SSE Response
 

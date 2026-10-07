@@ -1,4 +1,5 @@
-import { cn } from "@/app/utils/style/helper";
+import Image from "next/image";
+import SelectionBadge from "@/app/shared/ui/atom/selection-badge";
 import type { MenuNameBadgeProps } from "./menu-category-recommendation-result.props";
 
 /**
@@ -7,24 +8,30 @@ import type { MenuNameBadgeProps } from "./menu-category-recommendation-result.p
  */
 export default function MenuNameBadge({
   name,
+  iconSrc,
   isSelected = false,
   onToggle,
+  onRemove,
   className,
 }: MenuNameBadgeProps) {
   return (
-    <button
-      type="button"
-      aria-pressed={isSelected}
-      onClick={() => onToggle?.(name)}
-      className={cn(
-        "rounded-full border px-3 py-1.5 text-[13px] font-bold backdrop-blur-xl transition-colors",
-        isSelected
-          ? "border-primary/55 bg-primary/[0.16] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
-          : "border-white/60 bg-white/[0.12] text-ink-secondary shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] hover:bg-white/[0.22]",
-        className
-      )}
-    >
-      {name}
-    </button>
+    <SelectionBadge
+      label={name}
+      icon={
+        iconSrc ? (
+          <Image
+            src={iconSrc}
+            alt=""
+            width={18}
+            height={18}
+            className="h-[18px] w-[18px] object-contain"
+          />
+        ) : undefined
+      }
+      selected={isSelected}
+      onToggle={() => onToggle?.(name)}
+      onRemove={onRemove ? () => onRemove(name) : undefined}
+      className={className}
+    />
   );
 }

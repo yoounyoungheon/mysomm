@@ -3,11 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  MENU_CATEGORY,
-  MENU_CATEGORIES,
-  type RecommendedMenu,
-} from "@/app/entity/menu-category-recommendation/model/menu-category-recommendation.type";
+import type { RecommendedMenu } from "@/app/entity/menu-category-recommendation/model/menu-category-recommendation.type";
 import { saveWinePairingSnapshot } from "@/app/entity/wine-pairing-workflow/lib/workflow-snapshot-storage";
 import {
   WORKFLOW_SNAPSHOT_VERSION,
@@ -22,11 +18,13 @@ import { useStoredWineSelectionSnapshot } from "../lib/use-stored-recommendation
 import MenuNameBadge from "./MenuNameBadge";
 import RecommendedMenuList from "./RecommendedMenuList";
 import type { MenuCategoryRecommendationPageProps } from "./menu-category-recommendation-result.props";
-
-/** 추천 메뉴가 마땅치 않을 때 직접 고를 수 있는 카테고리(기타 제외 10개). */
-const FALLBACK_CATEGORIES = MENU_CATEGORIES.filter(
-  (category) => category !== MENU_CATEGORY.OTHER
-);
+import CustomFoodInput from "./CustomFoodInput";
+import SelectedMenuCart from "./SelectedMenuCart";
+import {
+  FIXED_FOOD_CATEGORIES,
+  FIXED_FOOD_GROUPS,
+} from "../model/fixed-food-categories";
+import { getMenuSelection } from "../lib/menu-selection";
 
 /** 선택한 세션 와인으로 추천 메뉴를 조회하고, 페어링에 사용할 메뉴 name을 고르는 화면. */
 export default function MenuCategoryRecommendationPage({
@@ -38,7 +36,7 @@ export default function MenuCategoryRecommendationPage({
     <main
       className={cn(
         "relative flex min-h-0 flex-1 flex-col overflow-hidden",
-        className
+        className,
       )}
     >
       {!isHydrated ? (
@@ -52,34 +50,32 @@ export default function MenuCategoryRecommendationPage({
   );
 }
 
-function RecommendationBody({
-  snapshot,
-}: {
-  snapshot: WineSelectionSnapshot;
-}) {
+function RecommendationBody({ snapshot }: { snapshot: WineSelectionSnapshot }) {
   const router = useRouter();
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
+  const [customNames, setCustomNames] = useState<string[]>([]);
 
   const { data, error, isLoading, isFetching, refetch } =
     useMenuRecommendationsQuery(snapshot.sessionId, snapshot.pairingWineIds);
 
   const menus = useMemo(() => data ?? [], [data]);
-  const availableNames = useMemo(
-    // 추천 응답의 메뉴명 + 하단에서 직접 고를 수 있는 카테고리를 유효 선택값으로 둔다.
-    () => new Set<string>([...menus.map((menu) => menu.name), ...FALLBACK_CATEGORIES]),
-    [menus]
-  );
-  // 현재 추천 응답에 존재하는 선택 name(또는 선택 가능한 카테고리)만 유효하다.
-  const validSelectedNames = selectedNames.filter((name) =>
-    availableNames.has(name)
-  );
-  const canRequestPairing = validSelectedNames.length > 0;
+  const recommendedNames = menus.map((menu) => menu.name);
+  const availableNames = [
+    ...recommendedNames,
+    ...FIXED_FOOD_CATEGORIES.map((food) => food.name),
+    ...customNames,
+  ];
+  const selection = getMenuSelection(selectedNames, availableNames);
+  const validSelectedNames = selection.names;
+  // 추천 메뉴·고정 카테고리·직접 입력 모두 기존 menuNames shape로 전달한다.
+  const canRequestPairing =
+    selection.canRequestPairing && !isFetching && !error;
 
   const toggleName = (name: string) => {
     setSelectedNames((current) =>
       current.includes(name)
         ? current.filter((value) => value !== name)
-        : [...current, name]
+        : [...current, name],
     );
   };
 
@@ -98,8 +94,63 @@ function RecommendationBody({
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-        <div className="mx-auto flex min-h-full w-full max-w-[680px] flex-col px-5 pb-28 pt-5">
-          <section className="pb-7" aria-labelledby="menu-recommendation-intro-title">
+        <div className="mx-auto flex min-h-full w-full max-w-[680px] flex-col px-5 pb-36 pt-5">
+          <section aria-labelledby="fixed-food-title">
+            <h2
+              id="fixed-food-title"
+              className="text-[25px] font-extrabold leading-tight text-ink-page"
+            >
+              어떤 음식을 드시나요?
+            </h2>
+            <p className="mt-3 text-[14px] font-medium leading-relaxed text-ink-secondary">
+              가장 가까운 카테고리를 선택해 주세요.
+            </p>
+            <div className="mt-6 space-y-2" data-fixed-food-rows>
+              {FIXED_FOOD_GROUPS.map((foods) => (
+                <ul
+                  key={foods[0].name}
+                  className="flex gap-2 max-[359px]:gap-1.5"
+                >
+                  {foods.map((food) => (
+                    <li key={food.name} className="min-w-0">
+                      <MenuNameBadge
+                        name={food.name}
+                        iconSrc={`/images/menu-category/${food.icon}`}
+                        isSelected={validSelectedNames.includes(food.name)}
+                        onToggle={toggleName}
+                        className="[&>button]:gap-1 [&>button]:whitespace-nowrap [&>button]:px-1.5 [&>button]:text-[12px] min-[360px]:[&>button]:px-2 min-[360px]:[&>button]:text-[13px]"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ))}
+            </div>
+          </section>
+
+          <CustomFoodInput
+            names={customNames}
+            existingNames={availableNames}
+            selectedNames={validSelectedNames}
+            onAdd={(name) => {
+              setCustomNames((current) => [...current, name]);
+              setSelectedNames((current) => [...current, name]);
+            }}
+            onRemove={(name) => {
+              setCustomNames((current) =>
+                current.filter((value) => value !== name),
+              );
+              setSelectedNames((current) =>
+                current.filter((value) => value !== name),
+              );
+            }}
+            onToggle={toggleName}
+          />
+
+          <hr className="my-8 border-white/70" />
+          <section
+            className="pb-7"
+            aria-labelledby="menu-recommendation-intro-title"
+          >
             <h2
               id="menu-recommendation-intro-title"
               className="text-[25px] font-extrabold leading-tight text-ink-page"
@@ -115,18 +166,10 @@ function RecommendationBody({
           </section>
 
           <section aria-labelledby="ai-recommended-menu-title">
-            <div className="flex min-h-5 items-center justify-between gap-4">
-              <h2 id="ai-recommended-menu-title" className="sr-only">
-                추천 메뉴
-              </h2>
-              {validSelectedNames.length > 0 ? (
-                <p className="ml-auto text-[13px] font-bold text-ink-card">
-                  {validSelectedNames.length}개 선택
-                </p>
-              ) : null}
-            </div>
-
-            <div className="mt-3">
+            <h2 id="ai-recommended-menu-title" className="sr-only">
+              추천 메뉴
+            </h2>
+            <div>
               <RecommendationResult
                 menus={menus}
                 isLoading={isLoading}
@@ -138,33 +181,19 @@ function RecommendationBody({
               />
             </div>
           </section>
-
-          <section className="mt-9" aria-labelledby="fallback-category-title">
-            <h2
-              id="fallback-category-title"
-              className="text-[17px] font-extrabold text-ink-page"
-            >
-              찾으시는 메뉴가 없나요?
-            </h2>
-            <p className="mt-1 text-[13px] font-medium leading-relaxed text-ink-secondary">
-              원하는 카테고리를 직접 선택해 보세요
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {FALLBACK_CATEGORIES.map((category) => (
-                <MenuNameBadge
-                  key={category}
-                  name={category}
-                  isSelected={validSelectedNames.includes(category)}
-                  onToggle={toggleName}
-                />
-              ))}
-            </div>
-          </section>
         </div>
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-[calc(16px_+_env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto mx-auto w-full max-w-[640px]">
+        <div className="mx-auto w-full max-w-[640px]">
+          <div className="mb-5 flex justify-end">
+            <div className="pointer-events-auto">
+              <SelectedMenuCart
+                selectedNames={validSelectedNames}
+                onRemove={toggleName}
+              />
+            </div>
+          </div>
           <Button
             htmlType="button"
             variant="solid"
@@ -172,7 +201,7 @@ function RecommendationBody({
             radius="lg"
             disabled={!canRequestPairing}
             onClick={handleRequestPairing}
-            className="h-[52px] w-full rounded-[18px] border border-white/60 bg-white/[0.08] text-[15px] font-bold text-ink-emphasis shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_28px_rgba(72,52,112,0.07)] backdrop-blur-2xl backdrop-saturate-150 hover:bg-white/[0.14] disabled:!border-white/40 disabled:!bg-white/[0.02] disabled:!text-ink-muted disabled:!opacity-100"
+            className="pointer-events-auto h-[52px] w-full rounded-[18px] border border-white/60 bg-white/[0.08] text-[15px] font-bold text-ink-emphasis shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_28px_rgba(72,52,112,0.07)] backdrop-blur-2xl backdrop-saturate-150 hover:bg-white/[0.14] disabled:!border-white/40 disabled:!bg-white/[0.02] disabled:!text-ink-muted disabled:!opacity-100"
           >
             와인 추천받기
           </Button>
@@ -287,7 +316,7 @@ function StatePanel({
   action?: ReactNode;
 }) {
   if (tone === "pending") {
-    return <SkeletonList label={message} />;
+    return <SkeletonList label={message} variant="menu-chips" />;
   }
 
   return (
@@ -298,7 +327,7 @@ function StatePanel({
       <p
         className={cn(
           "text-[15px] leading-relaxed",
-          tone === "error" ? "text-error-main" : "text-ink-secondary"
+          tone === "error" ? "text-error-main" : "text-ink-secondary",
         )}
       >
         {message}
