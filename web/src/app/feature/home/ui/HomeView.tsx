@@ -357,9 +357,9 @@ function EmojiBadge({ src, alt }: { src: string; alt: string }) {
       <Image
         src={src}
         alt={alt}
-        width={26}
-        height={26}
-        className="h-[26px] w-[26px] object-contain"
+        width={32}
+        height={32}
+        className="h-8 w-8 object-contain"
       />
     </span>
   );
