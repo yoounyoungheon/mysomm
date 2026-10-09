@@ -9,7 +9,8 @@ import { useWinePairingConversation } from "../api/use-wine-pairing-conversation
 import type { PairingTurn } from "../model/conversation.types";
 import ChatAnswerBubble from "./ChatAnswerBubble";
 import ChatComposer from "./ChatComposer";
-import WineRecommendationCarousel from "./WineRecommendationCarousel";
+import WineRecommendationCarouselA from "./WineRecommendationCarouselA";
+import WineRecommendationCarouselB from "./WineRecommendationCarouselB";
 import type { WinePairingChatViewProps } from "./wine-pairing-chat.props";
 
 /**
@@ -21,6 +22,7 @@ import type { WinePairingChatViewProps } from "./wine-pairing-chat.props";
  */
 export default function WinePairingChatView({
   className,
+  recommendationVariant = "A",
 }: WinePairingChatViewProps) {
   const {
     turns,
@@ -64,7 +66,12 @@ export default function WinePairingChatView({
             />
           ) : (
             <>
-              <section aria-labelledby="wine-recommendation-intro-title">
+              <section
+                className={
+                  recommendationVariant === "B" ? "sr-only" : undefined
+                }
+                aria-labelledby="wine-recommendation-intro-title"
+              >
                 <h2
                   id="wine-recommendation-intro-title"
                   className="text-[25px] font-extrabold leading-tight text-ink-page"
@@ -76,16 +83,22 @@ export default function WinePairingChatView({
                     선택한 메뉴와 잘 어울리는 순서예요.
                   </span>
                   <span className="block">
-                    카드를 뒤집어 상세 정보를 확인해 보세요.
+                    {recommendationVariant === "B"
+                      ? "추천 이유를 펼쳐 와인과 음식의 궁합을 확인해 보세요."
+                      : "카드를 뒤집어 상세 정보를 확인해 보세요."}
                   </span>
                 </p>
               </section>
               {turns.map((turn, index) =>
                 turn.kind === "pairing" ? (
-                  <PairingTurnSection key={`turn-${index}`} turn={turn} />
+                  <PairingTurnSection
+                    key={`turn-${index}`}
+                    turn={turn}
+                    variant={recommendationVariant}
+                  />
                 ) : (
                   <ChatAnswerBubble key={`turn-${index}`} turn={turn} />
-                )
+                ),
               )}
             </>
           )}
@@ -110,7 +123,15 @@ export default function WinePairingChatView({
   );
 }
 
-function PairingTurnSection({ turn }: { turn: PairingTurn }) {
+function PairingTurnSection({
+  turn,
+  variant,
+}: {
+  turn: PairingTurn;
+  variant: "A" | "B";
+}) {
+  const Carousel =
+    variant === "B" ? WineRecommendationCarouselB : WineRecommendationCarouselA;
   return (
     <section aria-label="추천 와인" className="flex flex-col gap-4">
       {turn.source === "recommendation" && turn.question ? (
@@ -121,7 +142,7 @@ function PairingTurnSection({ turn }: { turn: PairingTurn }) {
 
       {turn.slides.length > 0 ? (
         // 캐러셀 스크롤 영역은 페이지 패딩(px-5)을 상쇄해 화면 전체 폭을 쓴다.
-        <WineRecommendationCarousel slides={turn.slides} className="-mx-5 w-auto" />
+        <Carousel slides={turn.slides} className="-mx-5 w-auto" />
       ) : null}
 
       {turn.status === "streaming" && turn.slides.length === 0 ? (
@@ -162,7 +183,8 @@ function StatePanel({
   message: string;
   action?: ReactNode;
 }) {
-  if (tone === "pending") return <SkeletonList label={message} variant="wine" />;
+  if (tone === "pending")
+    return <SkeletonList label={message} variant="wine" />;
 
   return (
     <div
@@ -172,7 +194,7 @@ function StatePanel({
       <p
         className={cn(
           "text-[15px] leading-relaxed",
-          tone === "error" ? "text-error-main" : "text-ink-secondary"
+          tone === "error" ? "text-error-main" : "text-ink-secondary",
         )}
       >
         {message}

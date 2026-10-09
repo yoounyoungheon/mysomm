@@ -1,5 +1,5 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, within, userEvent, waitFor } from "storybook/test";
 import {
   clearWinePairingConsumed,
   clearWinePairingSnapshot,
@@ -91,7 +91,10 @@ function chatFrames(answer: string): unknown[] {
 
 function sseResponse(
   frames: unknown[],
-  { frameDelayMs = 120, close = true }: { frameDelayMs?: number; close?: boolean } = {}
+  {
+    frameDelayMs = 120,
+    close = true,
+  }: { frameDelayMs?: number; close?: boolean } = {},
 ) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -194,6 +197,66 @@ export const Default: Story = {
   }),
 };
 
+export const RecommendB: Story = {
+  args: { recommendationVariant: "B" },
+  beforeEach: stubStoryEnv({
+    seedRequest: true,
+    onPairing: () =>
+      sseResponse(pairingFrames(samplePayloads), { frameDelayMs: 0 }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      await canvas.findByPlaceholderText(
+        "채팅을 입력하세요",
+        {},
+        { timeout: 10_000 },
+      ),
+    ).toBeEnabled();
+    expect(
+      canvasElement.querySelectorAll("[data-recommendation-carousel=B]"),
+    ).toHaveLength(1);
+    expect(
+      canvas.getAllByRole("link", { name: /이 와인 자세히 보기/ }),
+    ).toHaveLength(2);
+    expect(canvasElement.querySelectorAll("summary")).toHaveLength(2);
+  },
+};
+
+export const RecommendBRePairing: Story = {
+  args: { recommendationVariant: "B" },
+  beforeEach: stubStoryEnv({
+    seedRequest: true,
+    onPairing: () =>
+      sseResponse(pairingFrames(samplePayloads), { frameDelayMs: 0 }),
+    onChat: () =>
+      sseResponse(pairingFrames([samplePayloads[0]]), { frameDelayMs: 0 }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const composer = await canvas.findByPlaceholderText(
+      "채팅을 입력하세요",
+      {},
+      { timeout: 10_000 },
+    );
+    await userEvent.type(composer, "다른 와인도 추천해주세요{Enter}");
+    await waitFor(
+      () =>
+        expect(
+          canvasElement.querySelectorAll("[data-recommendation-carousel=B]"),
+        ).toHaveLength(2),
+      { timeout: 10_000 },
+    );
+    await waitFor(
+      () =>
+        expect(
+          canvas.getAllByRole("link", { name: /이 와인 자세히 보기/ }),
+        ).toHaveLength(3),
+      { timeout: 10_000 },
+    );
+  },
+};
+
 /** 서버가 JSON 결과를 한 번에 반환해도 텍스트 표시 완료까지 입력을 잠근다. */
 export const BurstResponse: Story = {
   beforeEach: stubStoryEnv({
@@ -202,19 +265,25 @@ export const BurstResponse: Story = {
       const frames = samplePayloads.map((data) => ({ type: "JSON", data }));
       return new Response(
         frames.map((frame) => `data:${JSON.stringify(frame)}\n\n`).join(""),
-        { headers: { "Content-Type": "text/event-stream" } }
+        { headers: { "Content-Type": "text/event-stream" } },
       );
     },
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const pendingInput = await canvas.findByPlaceholderText("와인 추천이 끝나면 질문할 수 있어요");
+    const pendingInput = await canvas.findByPlaceholderText(
+      "와인 추천이 끝나면 질문할 수 있어요",
+    );
     await expect(pendingInput).toBeDisabled();
     const readyInput = await canvas.findByPlaceholderText(
-      "채팅을 입력하세요", {}, { timeout: 10_000 }
+      "채팅을 입력하세요",
+      {},
+      { timeout: 10_000 },
     );
     await expect(readyInput).toBeEnabled();
-    await expect(canvas.getAllByRole("button", { name: /상세 정보 보기/ })).toHaveLength(2);
+    await expect(
+      canvas.getAllByRole("button", { name: /상세 정보 보기/ }),
+    ).toHaveLength(2);
   },
 };
 
@@ -222,23 +291,24 @@ export const BurstResponse: Story = {
 export const PairingDone: Story = {
   beforeEach: stubStoryEnv({
     seedRequest: true,
-    onPairing: () => sseResponse(pairingFrames(samplePayloads), { frameDelayMs: 60 }),
+    onPairing: () =>
+      sseResponse(pairingFrames(samplePayloads), { frameDelayMs: 60 }),
     onChat: () =>
       sseResponse(
         chatFrames(
-          "첫 번째 와인은 타닌이 부드럽고 산도가 적당해서 된장 소스의 감칠맛을 살려줘요."
+          "첫 번째 와인은 타닌이 부드럽고 산도가 적당해서 된장 소스의 감칠맛을 살려줘요.",
         ),
-        { frameDelayMs: 80 }
+        { frameDelayMs: 80 },
       ),
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     await expect(
-      await canvas.findByText("선택한 메뉴와 잘 어울리는 순서예요.")
+      await canvas.findByText("선택한 메뉴와 잘 어울리는 순서예요."),
     ).toBeVisible();
     await expect(
-      canvas.getByText("카드를 뒤집어 상세 정보를 확인해 보세요.")
+      canvas.getByText("카드를 뒤집어 상세 정보를 확인해 보세요."),
     ).toBeVisible();
   },
 };
@@ -262,11 +332,17 @@ export const WaitingForFirstResult: Story = {
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const panel = await canvas.findByRole("status", { name: "어울리는 와인을 찾고 있어요." });
+    const panel = await canvas.findByRole("status", {
+      name: "어울리는 와인을 찾고 있어요.",
+    });
     await expect(panel).toHaveAttribute("aria-busy", "true");
     await expect(panel).toHaveAttribute("data-skeleton-variant", "wine");
-    await expect(panel.querySelector("[data-wine-image-skeleton]")).toBeInTheDocument();
-    await expect(canvas.getByPlaceholderText("와인 추천이 끝나면 질문할 수 있어요")).toBeDisabled();
+    await expect(
+      panel.querySelector("[data-wine-image-skeleton]"),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByPlaceholderText("와인 추천이 끝나면 질문할 수 있어요"),
+    ).toBeDisabled();
   },
 };
 

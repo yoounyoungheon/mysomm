@@ -40,17 +40,25 @@ export const POST = withServerRequestLog(
       return jsonResponse({ message: SERVER_ERROR_MESSAGE }, 500);
     }
 
-    if (parsed.data.code !== accessCode) {
+    const recommendationVariant =
+      parsed.data.code === accessCode
+        ? "A"
+        : parsed.data.code === `${accessCode}-B`
+          ? "B"
+          : null;
+    if (recommendationVariant === null) {
       log.event("auth.code.rejected", {}, "warn");
       return jsonResponse({ message: INVALID_CODE_MESSAGE }, 401);
     }
 
     try {
-      log.event("auth.code.accepted");
+      log.event("auth.code.accepted", {
+        isVariantB: recommendationVariant === "B",
+      });
       log.event("auth.tokens.started");
       const [accessToken, refreshToken] = await Promise.all([
-        createBetaAccessToken(),
-        createBetaRefreshToken(),
+        createBetaAccessToken(recommendationVariant),
+        createBetaRefreshToken(recommendationVariant),
       ]);
       const response = jsonResponse({ ok: true }, 200);
       response.cookies.set({

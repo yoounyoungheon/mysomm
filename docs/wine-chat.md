@@ -1,5 +1,7 @@
 # `/wine/chat` 페어링·후속 대화 개발 문서
 
+이 경로는 WineRecommendationCarouselA를 사용한다. keywords에서 스냅샷 저장 후 공통으로 이 경로에 진입하며, Middleware가 인증 그룹 A는 통과시키고 B는 `/wine/recommend`로 redirect한다. B 화면과 서버 상태·스트리밍·후속 대화 로직은 공유한다.
+
 ## 홈 이동과 서버 로그
 
 상단 PageHeader는 뒤로가기 대신 홈 아이콘을 제공하며 `/`로 replace 이동한다. 이전 단계에서 진입할 때도 replace를 사용해 완료한 입력 화면을 히스토리에 추가하지 않는다.
@@ -25,7 +27,7 @@ WineChatPage [Server]  (page.tsx)
 ├─ PageHeader [Server]
 └─ WinePairingChatView [Client]
    ├─ ConversationScroll
-   │  ├─ PairingTurnSection → WineRecommendationCarousel → WineRecommendationSlide[]
+   │  ├─ PairingTurnSection → WineRecommendationCarouselA → WineRecommendationSlide[]
    │  │     Front: rank/name/image/comment/reason (flip)
    │  │     Back:  vintage/도수/가격 + 테이스트(바디·당도·타닌·산도 0..5)
    │  └─ ChatAnswerBubble[]
@@ -149,7 +151,7 @@ React key는 `pairingId + wine.id + rank`를 결합한다(pairingId는 slide마�
 
 - `Feature/wine-pairing-chat/WineRecommendationSlide`
   (default/wine detail/long text/no image/streaming/null taste/flip round trip)
-- `WineRecommendationCarousel`, `ChatAnswerBubble`, `ChatComposer`
+- `WineRecommendationCarouselA`, `ChatAnswerBubble`, `ChatComposer` (기존 캐러셀은 A로 이름만 변경했으며 동작과 공용 WineRecommendationCarouselProps는 유지)
 - `WinePairingChatView` (Default/PairingDone/Streaming/Error/NoRequest) — fetch/sessionStorage 스텁
 
 slide story의 interaction은 상세 면 전환과 복귀, 숨겨진 면의 `tabIndex`, 긴 추천 이유

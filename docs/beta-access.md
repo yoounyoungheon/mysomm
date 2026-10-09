@@ -1,5 +1,22 @@
 # 베타 사용자 접근 인증
 
+## 추천 UI A/B 그룹
+
+기준 `BETA_ACCESS_CODE`를 정확히 입력하면 A, 기준 코드에 `-B`를 붙여 정확히 입력하면 B로 인증한다. 접미사만 일치하는 다른 코드는 허용하지 않는다. 요청 `{ code }`와 성공 응답 `{ ok: true }`는 기존과 동일하다.
+
+Access/Refresh JWT 모두 `recommendationVariant: "A" | "B"`를 서명한다. Middleware는 검증된 Access claim을 우선 사용하고, 갱신할 때는 검증된 Refresh claim의 그룹을 그대로 새 Access Token에 넣는다. 그룹이 없는 기존 정상 토큰은 A이며, 잘못된 그룹 값이 있는 토큰은 거부한다. 기존 BFF의 boolean 인증 검증도 유지된다.
+
+| 그룹 | 추천 결과 경로 | 반대 경로 접근 |
+| --- | --- | --- |
+| A | `/wine/chat` | `/wine/recommend` → `/wine/chat` |
+| B | `/wine/recommend` | `/wine/chat` → `/wine/recommend` |
+
+키워드 선택 스냅샷 저장 후에는 공통으로 `/wine/chat`에 replace 이동한다. Middleware가 B를 `/wine/recommend`로 임시 redirect한다. query string을 유지하고 redirect 응답에 `Cache-Control: private, no-store`를 설정한다. 갱신과 redirect가 동시에 발생하면 새 Access Cookie도 함께 설정한다. 다른 페이지와 API는 그룹별로 분기하지 않는다.
+
+두 결과 화면은 기존 API·SSE·버퍼링·재추천·후속 채팅 로직을 공유한다. 그룹을 클라이언트 상태나 저장소에 복제하지 않으며 코드/토큰 원문도 로그에 기록하지 않는다. 인증 성공 로그에는 기존 boolean 전용 로거 정책에 맞춰 `isVariantB` 플래그만 추가한다.
+
+이미 인증된 `/beta` 방문은 홈으로 이동하므로 B 코드 검증은 별도 브라우저 프로필 또는 시크릿 창에서 진행한다. 그룹 변경용 UI나 우회 query parameter는 제공하지 않는다.
+
 ## 서버 인증 로그
 
 beta-auth POST는 공통 server-only 로거로 요청·입력 검증·코드 승인/거부·토큰 발급 시작/완료·설정 오류 및 HTTP 상태를 JSON으로 출력한다. 코드·JWT·쿠키는 출력하지 않으며 요청별 requestId와 경과 시간을 제공한다. 인증 성공의 기존 홈 replace 이동은 유지한다. middleware에서 먼저 차단되는 요청은 beta-auth/BFF route까지 도달하지 않으므로 해당 route 로그에 포함되지 않는다.
@@ -25,7 +42,7 @@ Access Token이 만료되면 Next.js Middleware가 Refresh Token을 검증해 �
 - 두 값에 **NEXT_PUBLIC_** 접두사를 붙이지 않는다.
 - 실제 값은 Git에 커밋하지 않는다.
 - **BETA_JWT_SECRET**은 최소 32바이트여야 한다.
-- 값을 변경하면 기존 Access/Refresh Token이 모두 무효화되어 모든 사용자가 다시 인증해야 한다.
+- JWT secret을 변경하면 기존 Access/Refresh Token이 모두 무효화된다. 코드만 변경하면 이미 발급된 토큰은 만료 전까지 유효하다.
 
 ## 최초 인증 흐름
 

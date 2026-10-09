@@ -10,7 +10,7 @@ import type { WineRecommendationCarouselProps } from "./wine-pairing-chat.props"
  * CSS scroll snap으로 슬라이드를 넘기고, dots는 스크롤 위치에서 파생한다.
  * 스트리밍으로 새 슬라이드가 생기면 해당 슬라이드로 자동 스크롤한다.
  */
-export default function WineRecommendationCarousel({
+export default function WineRecommendationCarouselA({
   slides,
   className,
 }: WineRecommendationCarouselProps) {

@@ -2,11 +2,44 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 vi.mock("server-only", () => ({}));
 import { POST } from "./route";
+import {
+  readBetaAccessToken,
+  readBetaRefreshToken,
+} from "@/lib/auth/beta-token";
 
 const TEST_CODE = "valid-beta-code";
 const TEST_SECRET = "test-secret-that-is-at-least-32-bytes-long";
 
 describe("POST /api/beta-auth", () => {
+  it.each([
+    [TEST_CODE, "A"],
+    [`${TEST_CODE}-B`, "B"],
+  ] as const)("issues matching groups for %s", async (code, variant) => {
+    const response = await POST(createRequest(code));
+    if (!(response instanceof NextResponse))
+      throw new Error("Expected NextResponse");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    await expect(
+      readBetaAccessToken(response.cookies.get("beta_access")!.value),
+    ).resolves.toEqual({ recommendationVariant: variant });
+    await expect(
+      readBetaRefreshToken(response.cookies.get("beta_refresh")!.value),
+    ).resolves.toEqual({ recommendationVariant: variant });
+  });
+  it.each(["wrong-B", `${TEST_CODE}-b`, `${TEST_CODE}-B-B`, `${TEST_CODE}-B `])(
+    "rejects nonmatching code %s",
+    async (code) => {
+      const response = await POST(createRequest(code));
+      expect(response.status).toBe(401);
+      expect(response.headers.get("set-cookie")).toBeNull();
+    },
+  );
+  it("rejects empty input without cookies", async () => {
+    const response = await POST(createRequest(""));
+    expect(response.status).toBe(400);
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
   beforeEach(() => {
     process.env.BETA_ACCESS_CODE = TEST_CODE;
     process.env.BETA_JWT_SECRET = TEST_SECRET;

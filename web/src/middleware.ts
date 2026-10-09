@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   createBetaUnauthorizedResponse,
-  hasValidBetaAccess,
-  hasValidBetaRefresh,
+  readBetaAccess,
+  readBetaRefresh,
 } from "@/lib/auth/beta-request";
 import {
   BETA_ACCESS_COOKIE_NAME,
   BETA_ACCESS_MAX_AGE_SECONDS,
   BETA_REFRESH_COOKIE_NAME,
   createBetaAccessToken,
+  type RecommendationVariant,
 } from "@/lib/auth/beta-token";
 
 const PUBLIC_API_PATHS = new Set(["/api/beta-auth", "/api/health"]);
@@ -26,24 +27,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasAccess = await hasValidBetaAccess(request);
+  const access = await readBetaAccess(request);
 
-  if (hasAccess) {
-    return isBetaPath(pathname)
-      ? NextResponse.redirect(new URL("/", request.url))
-      : NextResponse.next();
+  if (access) {
+    return authenticatedResponse(request, access.recommendationVariant);
   }
 
-  if (await hasValidBetaRefresh(request)) {
+  const refresh = await readBetaRefresh(request);
+  if (refresh) {
     try {
-      const accessToken = await createBetaAccessToken();
-      const response = isBetaPath(pathname)
-        ? NextResponse.redirect(new URL("/", request.url))
-        : NextResponse.next({
-            request: {
-              headers: createHeadersWithAccessToken(request, accessToken),
-            },
-          });
+      const accessToken = await createBetaAccessToken(
+        refresh.recommendationVariant,
+      );
+      const response = authenticatedResponse(
+        request,
+        refresh.recommendationVariant,
+        accessToken,
+      );
 
       setAccessCookie(response, accessToken);
       return response;
@@ -57,16 +57,41 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
-    return clearBetaCookiesIfPresent(
-      createBetaUnauthorizedResponse(),
-      request
-    );
+    return clearBetaCookiesIfPresent(createBetaUnauthorizedResponse(), request);
   }
 
   return clearBetaCookiesIfPresent(
     NextResponse.redirect(new URL("/beta", request.url)),
-    request
+    request,
   );
+}
+
+function authenticatedResponse(
+  request: NextRequest,
+  variant: RecommendationVariant,
+  renewedToken?: string,
+): NextResponse {
+  const pathname = request.nextUrl.pathname;
+  if (isBetaPath(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  const isRecommendation =
+    pathname === "/wine/chat" || pathname === "/wine/recommend";
+  const targetPath = variant === "B" ? "/wine/recommend" : "/wine/chat";
+  if (isRecommendation && pathname !== targetPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = targetPath;
+    const response = NextResponse.redirect(url);
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
+  return renewedToken
+    ? NextResponse.next({
+        request: {
+          headers: createHeadersWithAccessToken(request, renewedToken),
+        },
+      })
+    : NextResponse.next();
 }
 
 function isBetaPath(pathname: string): boolean {
@@ -75,7 +100,7 @@ function isBetaPath(pathname: string): boolean {
 
 function createHeadersWithAccessToken(
   request: NextRequest,
-  accessToken: string
+  accessToken: string,
 ): Headers {
   const headers = new Headers(request.headers);
   const cookies = request.cookies
@@ -102,7 +127,7 @@ function setAccessCookie(response: NextResponse, token: string): void {
 
 function clearBetaCookiesIfPresent(
   response: NextResponse,
-  request: NextRequest
+  request: NextRequest,
 ): NextResponse {
   for (const name of [BETA_ACCESS_COOKIE_NAME, BETA_REFRESH_COOKIE_NAME]) {
     if (request.cookies.has(name)) {
@@ -132,5 +157,7 @@ function isPublicAssetPath(pathname: string): boolean {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+  ],
 };

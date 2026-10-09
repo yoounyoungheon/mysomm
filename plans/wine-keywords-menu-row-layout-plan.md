@@ -121,7 +121,7 @@
 - 입력 draft, 사용자 추가 음식, 선택 항목은 로컬 UI 상태다. 선택은 출처와 안정적인 식별자를 구분하고 최종 요청 중복 처리 규칙을 별도로 정한다.
 - 브라우저 sessionStorage의 선택 wine snapshot 때문에 기존 hydration 후 Query 조회 흐름을 유지한다. 이번 레이아웃 변경으로 조회를 중복시키지 않는다.
 - 데이터 경로는 Entity API → same-origin BFF → server-only 백엔드 호출을 유지한다. Query key와 자동 재시도 금지 정책도 유지한다.
-- 기존 Entity 타입·BFF 검증·snapshot shape는 유지하고 선택한 음식명을 menuNames에 저장한다. 저장 성공 후 `/wine/chat`으로 replace 이동한다.
+- 기존 Entity 타입·BFF 검증·snapshot shape는 유지하고 선택한 음식명을 menuNames에 저장한다. 저장 성공 후 공통 경로 `/wine/chat`으로 replace 이동한다. 베타 인증 Middleware가 A는 통과시키고 B는 `/wine/recommend`로 redirect한다.
 - AI 조회 중에도 고정 메뉴/직접 입력 UI는 유지한다. 로딩·오류·빈 결과는 AI 섹션에서만 표시한다. 스냅샷 없음은 기존 복귀 안내를 유지한다.
 - 메뉴 스켈레톤도 새 아이콘+뱃지 행 구조로 맞추되 색상·pulse·reduced-motion 정책과 와인 스켈레톤은 유지한다.
 

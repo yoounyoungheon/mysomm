@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import WineRecommendationCarousel from "./WineRecommendationCarousel";
+import WineRecommendationCarouselA from "./WineRecommendationCarouselA";
 import type { PairingSlideView } from "../model/conversation.types";
 
 function slide(rank: number, name: string): PairingSlideView {
@@ -15,9 +15,9 @@ function slide(rank: number, name: string): PairingSlideView {
   };
 }
 
-const meta: Meta<typeof WineRecommendationCarousel> = {
-  title: "Feature/wine-pairing-chat/WineRecommendationCarousel",
-  component: WineRecommendationCarousel,
+const meta: Meta<typeof WineRecommendationCarouselA> = {
+  title: "Feature/wine-pairing-chat/WineRecommendationCarouselA",
+  component: WineRecommendationCarouselA,
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
@@ -34,14 +34,14 @@ const meta: Meta<typeof WineRecommendationCarousel> = {
   },
   render: (args) => (
     <div className="w-[314px] bg-background-03 p-4">
-      <WineRecommendationCarousel {...args} />
+      <WineRecommendationCarouselA {...args} />
     </div>
   ),
 };
 
 export default meta;
 
-type Story = StoryObj<typeof WineRecommendationCarousel>;
+type Story = StoryObj<typeof WineRecommendationCarouselA>;
 
 export const SingleSlide: Story = {
   args: {

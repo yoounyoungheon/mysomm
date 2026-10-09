@@ -2,7 +2,7 @@
 
 ## 홈 이동과 서버 로그
 
-상단 홈 아이콘은 `/`로 replace 이동하며, 선택 스냅샷 저장 후 `/wine/chat` 진입도 router.replace한다. 추천 조회·선택 검증 정책은 그대로 유지한다.
+상단 홈 아이콘은 `/`로 replace 이동하며, 선택 스냅샷 저장 후 공통 진입 경로 `/wine/chat`으로 router.replace한다. 인증 토큰의 그룹에 따라 Middleware가 A는 그대로 통과시키고 B는 `/wine/recommend`로 redirect한다. 추천 조회·선택 검증 정책은 그대로 유지한다.
 
 recommend-menu BFF와 Entity 서버 helper는 요청 시작·인증·입력 검증(선택 개수)·백엔드 호출/상태·DTO 매핑·결과 개수·완료/오류를 요청별 JSON 로그로 남긴다. 세션·선택 ID·메뉴명·원문 오류를 출력하지 않고 timestamp/requestId/elapsedMs와 안전한 지표만 기록한다.
 
@@ -86,7 +86,7 @@ selection snapshot 복원
 → TanStack Query cache → RecommendedMenuList
 → 사용자가 추천 name 또는 고정/직접 입력 draft 선택
 → getMenuSelection: 표시 가능한 고정·직접 입력·AI 선택의 중복/오래된 값 제거
-→ WinePairingSnapshot 저장 → /wine/chat
+→ WinePairingSnapshot 저장 → /wine/chat → Middleware 그룹 분기
 ```
 
 `mapMenuRecommendationDto`는 응답 순서(AI rank)를 유지하고, `MENU_CATEGORIES` enum에

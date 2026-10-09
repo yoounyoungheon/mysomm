@@ -14,6 +14,9 @@ const MINIMUM_SECRET_BYTES = 32;
 const BETA_ACCESS_TOKEN_TYPE = "beta-access";
 const BETA_REFRESH_TOKEN_TYPE = "beta-refresh";
 
+export type RecommendationVariant = "A" | "B";
+export type BetaTokenClaims = { recommendationVariant: RecommendationVariant };
+
 export class BetaAuthConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -31,7 +34,7 @@ function getSecretKey(): Uint8Array {
   const encodedSecret = new TextEncoder().encode(secret);
   if (encodedSecret.byteLength < MINIMUM_SECRET_BYTES) {
     throw new BetaAuthConfigurationError(
-      `BETA_JWT_SECRET must be at least ${MINIMUM_SECRET_BYTES} bytes`
+      `BETA_JWT_SECRET must be at least ${MINIMUM_SECRET_BYTES} bytes`,
     );
   }
 
@@ -41,9 +44,10 @@ function getSecretKey(): Uint8Array {
 async function createBetaToken(
   type: string,
   audience: string,
-  expirationTime: string
+  expirationTime: string,
+  recommendationVariant: RecommendationVariant,
 ): Promise<string> {
-  return new SignJWT({ type })
+  return new SignJWT({ type, recommendationVariant })
     .setProtectedHeader({ alg: BETA_TOKEN_ALGORITHM, typ: "JWT" })
     .setIssuer(BETA_TOKEN_ISSUER)
     .setAudience(audience)
@@ -55,8 +59,8 @@ async function createBetaToken(
 async function verifyBetaToken(
   token: string,
   type: string,
-  audience: string
-): Promise<boolean> {
+  audience: string,
+): Promise<BetaTokenClaims | null> {
   try {
     const { payload } = await jwtVerify(token, getSecretKey(), {
       algorithms: [BETA_TOKEN_ALGORITHM],
@@ -65,44 +69,68 @@ async function verifyBetaToken(
       requiredClaims: ["iat", "exp"],
     });
 
-    return payload.type === type;
+    if (payload.type !== type) return null;
+    const variant = payload.recommendationVariant;
+    // Missing claims belong to legacy A sessions; malformed claims are rejected.
+    if (variant === undefined) return { recommendationVariant: "A" };
+    return variant === "A" || variant === "B"
+      ? { recommendationVariant: variant }
+      : null;
   } catch (error) {
     if (error instanceof BetaAuthConfigurationError) {
       throw error;
     }
 
-    return false;
+    return null;
   }
 }
 
-export function createBetaAccessToken(): Promise<string> {
+export function createBetaAccessToken(
+  recommendationVariant: RecommendationVariant = "A",
+): Promise<string> {
   return createBetaToken(
     BETA_ACCESS_TOKEN_TYPE,
     BETA_ACCESS_TOKEN_AUDIENCE,
-    "15m"
+    "15m",
+    recommendationVariant,
   );
 }
 
-export function createBetaRefreshToken(): Promise<string> {
+export function createBetaRefreshToken(
+  recommendationVariant: RecommendationVariant = "A",
+): Promise<string> {
   return createBetaToken(
     BETA_REFRESH_TOKEN_TYPE,
     BETA_REFRESH_TOKEN_AUDIENCE,
-    "7d"
+    "7d",
+    recommendationVariant,
   );
 }
 
-export function verifyBetaAccessToken(token: string): Promise<boolean> {
+export function readBetaAccessToken(
+  token: string,
+): Promise<BetaTokenClaims | null> {
   return verifyBetaToken(
     token,
     BETA_ACCESS_TOKEN_TYPE,
-    BETA_ACCESS_TOKEN_AUDIENCE
+    BETA_ACCESS_TOKEN_AUDIENCE,
   );
 }
 
-export function verifyBetaRefreshToken(token: string): Promise<boolean> {
+export function readBetaRefreshToken(
+  token: string,
+): Promise<BetaTokenClaims | null> {
   return verifyBetaToken(
     token,
     BETA_REFRESH_TOKEN_TYPE,
-    BETA_REFRESH_TOKEN_AUDIENCE
+    BETA_REFRESH_TOKEN_AUDIENCE,
   );
+}
+
+export async function verifyBetaAccessToken(token: string): Promise<boolean> {
+  return (await readBetaAccessToken(token)) !== null;
+}
+
+export async function verifyBetaRefreshToken(token: string): Promise<boolean> {
+  return (await readBetaRefreshToken(token)) !== null;
 }

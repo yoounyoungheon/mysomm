@@ -2,6 +2,7 @@ import type { ChatTurn, PairingSlideView } from "../model/conversation.types";
 
 export interface WinePairingChatViewProps {
   className?: string;
+  recommendationVariant?: "A" | "B";
 }
 
 export interface WineRecommendationCarouselProps {

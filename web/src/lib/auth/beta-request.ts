@@ -3,38 +3,43 @@ import {
   BETA_ACCESS_COOKIE_NAME,
   BETA_REFRESH_COOKIE_NAME,
   BetaAuthConfigurationError,
-  verifyBetaAccessToken,
-  verifyBetaRefreshToken,
+  readBetaAccessToken,
+  readBetaRefreshToken,
+  type BetaTokenClaims,
 } from "./beta-token";
 
 export async function hasValidBetaAccess(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<boolean> {
-  return hasValidBetaToken(
-    request,
-    BETA_ACCESS_COOKIE_NAME,
-    verifyBetaAccessToken
-  );
+  return (await readBetaAccess(request)) !== null;
+}
+
+export function readBetaAccess(
+  request: NextRequest,
+): Promise<BetaTokenClaims | null> {
+  return readBetaToken(request, BETA_ACCESS_COOKIE_NAME, readBetaAccessToken);
 }
 
 export async function hasValidBetaRefresh(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<boolean> {
-  return hasValidBetaToken(
-    request,
-    BETA_REFRESH_COOKIE_NAME,
-    verifyBetaRefreshToken
-  );
+  return (await readBetaRefresh(request)) !== null;
 }
 
-async function hasValidBetaToken(
+export function readBetaRefresh(
+  request: NextRequest,
+): Promise<BetaTokenClaims | null> {
+  return readBetaToken(request, BETA_REFRESH_COOKIE_NAME, readBetaRefreshToken);
+}
+
+async function readBetaToken(
   request: NextRequest,
   cookieName: string,
-  verifyToken: (token: string) => Promise<boolean>
-): Promise<boolean> {
+  verifyToken: (token: string) => Promise<BetaTokenClaims | null>,
+): Promise<BetaTokenClaims | null> {
   const token = request.cookies.get(cookieName)?.value;
   if (!token) {
-    return false;
+    return null;
   }
 
   try {
@@ -43,7 +48,7 @@ async function hasValidBetaToken(
     if (error instanceof BetaAuthConfigurationError) {
       console.error("[beta-auth] BETA_JWT_SECRET is not configured correctly.");
     }
-    return false;
+    return null;
   }
 }
 
@@ -53,6 +58,6 @@ export function createBetaUnauthorizedResponse(): NextResponse {
     {
       status: 401,
       headers: { "Cache-Control": "no-store" },
-    }
+    },
   );
 }
