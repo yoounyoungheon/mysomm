@@ -1,5 +1,12 @@
 # `/wine/chat` 와인 추천 UI 피드백 반영 계획
 
+## 응답 타입 및 브라우저 예외 방어 (2026-10-09)
+
+- SSE JSON 필수 정보는 검증하고 nullable 상세 정보는 문자열/유한 숫자/배열 타입을 확인해 정규화한다. 잘못된 타입은 null/빈 배열로 표시하고 임의 데이터로 보정하지 않는다.
+- 공통 포맷·이미지 helper와 aromas 필터에서 문자열이 아닌 값에 trim을 호출하지 않는다. B도 같은 helper를 재사용한다.
+- 잘못된 SSE envelope/null/배열은 상태에 전달하지 않는다. 추천 reducer의 findLastIndex는 역순 루프로 대체한다.
+- API 계약, A flip 및 B CSS disclosure, SSE 표시 주기, 인증은 유지한다. 단위 및 실제 브라우저 목업으로 A/B와 후속 대화를 검증한다.
+
 ## 1. 범위와 기준
 
 - 대상 라우트: `web/src/app/wine/chat/page.tsx`

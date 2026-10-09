@@ -9,10 +9,13 @@ import type {
   ChatStreamEvent,
   PairingChatStreamEvent,
   PairingFieldName,
-  PairingSlidePayload,
   PairingStreamEvent,
   WinePairingRequest,
 } from "@/app/entity/wine-pairing/model/wine-pairing.type";
+import {
+  isRecord,
+  normalizePairingPayload,
+} from "@/app/entity/wine-pairing/lib/normalize-pairing-payload";
 import {
   isWinePairingConsumed,
   loadWinePairingSnapshot,
@@ -67,7 +70,7 @@ export function useWinePairingConversation() {
 
   const [state, dispatch] = useReducer(
     conversationReducer,
-    initialConversationState
+    initialConversationState,
   );
 
   const startedRef = useRef(false);
@@ -113,7 +116,11 @@ export function useWinePairingConversation() {
       const signal = abortRef.current?.signal;
 
       if (
-        !message || !sessionId || !isComposerEnabled || !signal || signal.aborted ||
+        !message ||
+        !sessionId ||
+        !isComposerEnabled ||
+        !signal ||
+        signal.aborted ||
         chatInFlightRef.current
       ) {
         return;
@@ -131,14 +138,17 @@ export function useWinePairingConversation() {
           for await (const event of streamWinePairingChat(
             { message },
             sessionId,
-            signal
+            signal,
           )) {
             if (signal?.aborted) return;
 
             if (turnKind === null) {
               if (isChatStreamEvent(event)) {
                 turnKind = "chat";
-                presentation.enqueue({ type: "CHAT_APPEND", chunk: event.data.body });
+                presentation.enqueue({
+                  type: "CHAT_APPEND",
+                  chunk: event.data.body,
+                });
               } else if (isPairingStreamEvent(event)) {
                 turnKind = "pairing";
                 // RECOMMENDATION_START가 빈 ChatTurn을 제거하고 PairingTurn으로 대체한다.
@@ -148,7 +158,10 @@ export function useWinePairingConversation() {
               }
             } else if (turnKind === "chat") {
               if (isChatStreamEvent(event)) {
-                presentation.enqueue({ type: "CHAT_APPEND", chunk: event.data.body });
+                presentation.enqueue({
+                  type: "CHAT_APPEND",
+                  chunk: event.data.body,
+                });
               }
             } else if (isPairingStreamEvent(event)) {
               dispatchPairingEvent(event, presentation.enqueue);
@@ -181,7 +194,7 @@ export function useWinePairingConversation() {
         }
       })();
     },
-    [sessionId, isComposerEnabled]
+    [sessionId, isComposerEnabled],
   );
 
   return {
@@ -203,16 +216,19 @@ async function runPairingStream(
   request: WinePairingRequest,
   sessionId: string,
   controller: AbortController,
-  dispatch: (action: ConversationAction) => void
+  dispatch: (action: ConversationAction) => void,
 ) {
   dispatch({ type: "PAIRING_START" });
-  const presentation = createConversationPresentation(dispatch, controller.signal);
+  const presentation = createConversationPresentation(
+    dispatch,
+    controller.signal,
+  );
 
   try {
     for await (const event of streamWinePairing(
       request,
       sessionId,
-      controller.signal
+      controller.signal,
     )) {
       if (controller.signal.aborted) {
         return;
@@ -240,16 +256,19 @@ async function runPairingStream(
  */
 function dispatchPairingEvent(
   event: PairingStreamEvent,
-  dispatch: (action: ConversationAction) => void
+  dispatch: (action: ConversationAction) => void,
 ): void {
+  if (!isRecord(event)) return;
   if (event.type === "JSON") {
-    if (isValidPairingPayload(event.data)) {
-      dispatch({ type: "PAIRING_SLIDE_COMMIT", payload: event.data });
+    const payload = normalizePairingPayload(event.data);
+    if (payload) {
+      dispatch({ type: "PAIRING_SLIDE_COMMIT", payload });
     }
     return;
   }
 
-  const fieldName = event.data?.fieldName;
+  if (event.type !== "STREAM" || !isRecord(event.data)) return;
+  const fieldName = event.data.fieldName;
   if (
     PAIRING_FIELD_NAMES.includes(fieldName) &&
     typeof event.data.body === "string"
@@ -262,41 +281,28 @@ function dispatchPairingEvent(
   }
 }
 
-function isValidPairingPayload(
-  payload: PairingSlidePayload | undefined
-): payload is PairingSlidePayload {
-  return Boolean(
-    payload &&
-      typeof payload === "object" &&
-      payload.wine &&
-      typeof payload.wine.id === "string" &&
-      typeof payload.wine.wineName === "string" &&
-      typeof payload.comment === "string" &&
-      typeof payload.reason === "string" &&
-      typeof payload.rank === "number" && Number.isFinite(payload.rank)
-  );
-}
-
 function toErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function isPairingStreamEvent(
-  event: PairingChatStreamEvent
+  event: PairingChatStreamEvent,
 ): event is PairingStreamEvent {
   return (
-    event.type === "JSON" ||
-    (event.type === "STREAM" &&
-      typeof event.data === "object" &&
-      event.data !== null &&
-      "fieldName" in event.data)
+    isRecord(event) &&
+    (event.type === "JSON" ||
+      (event.type === "STREAM" &&
+        typeof event.data === "object" &&
+        event.data !== null &&
+        "fieldName" in event.data))
   );
 }
 
 function isChatStreamEvent(
-  event: PairingChatStreamEvent
+  event: PairingChatStreamEvent,
 ): event is ChatStreamEvent {
   return (
+    isRecord(event) &&
     event.type === "STREAM" &&
     typeof event.data === "object" &&
     event.data !== null &&

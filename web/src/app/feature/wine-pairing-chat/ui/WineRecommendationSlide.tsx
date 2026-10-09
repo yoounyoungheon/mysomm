@@ -1,12 +1,20 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type MouseEventHandler, type Ref } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEventHandler,
+  type Ref,
+} from "react";
 import Image from "next/image";
 import { RotateCcw } from "lucide-react";
 import type { PairingStreamWine } from "@/app/entity/wine-pairing/model/wine-pairing.type";
 import {
   formatWineAlcohol,
   formatWineRegionSegments,
+  normalizeWineAromas,
+  normalizeWineText,
 } from "@/app/entity/wine/lib/wine-format";
 import { resolveWineBottleImage } from "@/app/entity/wine/lib/wine-image";
 import { isCatalogExcluded } from "@/app/shared/config/wine-catalog";
@@ -40,7 +48,9 @@ export default function WineRecommendationSlide({
   className,
 }: WineRecommendationSlideProps) {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [expandedField, setExpandedField] = useState<ExpandedField | null>(null);
+  const [expandedField, setExpandedField] = useState<ExpandedField | null>(
+    null,
+  );
   const detailButtonRef = useRef<HTMLButtonElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const shouldMoveFocus = useRef(false);
@@ -72,13 +82,16 @@ export default function WineRecommendationSlide({
         <div
           className={cn(
             "relative transition-transform duration-500 motion-reduce:transition-none [transform-style:preserve-3d]",
-            isFlipped && "[transform:rotateY(180deg)]"
+            isFlipped && "[transform:rotateY(180deg)]",
           )}
         >
           <div
             data-card-face="front"
             inert={isFlipped}
-            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+            }}
             className={cn(isFlipped && "invisible pointer-events-none")}
           >
             <RecommendationFront
@@ -96,10 +109,13 @@ export default function WineRecommendationSlide({
           <div
             data-card-face="back"
             inert={!isFlipped}
-            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+            }}
             className={cn(
               "absolute inset-0 [transform:rotateY(180deg)]",
-              !isFlipped && "invisible pointer-events-none"
+              !isFlipped && "invisible pointer-events-none",
             )}
           >
             {slide.wine ? (
@@ -140,14 +156,17 @@ function RecommendationFront({
     ? resolveWineBottleImage(slide.wine, slide.wine.id)
     : slide.imageUrl
       ? { src: slide.imageUrl, isPlaceholder: false }
-      : resolveWineBottleImage({ wineBottleImageUrl: null }, slide.name || slide.rank);
+      : resolveWineBottleImage(
+          { wineBottleImageUrl: null },
+          slide.name || slide.rank,
+        );
   const showImageSkeleton = !slide.isCommitted && image.isPlaceholder;
 
   return (
     <Card
       className={cn(
         "relative flex flex-col overflow-hidden rounded-[18px] border border-white/80 bg-white/52 p-5 text-ink-page shadow-[0_18px_44px_rgba(72,52,112,0.08)] backdrop-blur-sm",
-        CARD_HEIGHT
+        CARD_HEIGHT,
       )}
     >
       {canFlip ? (
@@ -173,16 +192,22 @@ function RecommendationFront({
           ) : (
             <>
               <Image
-              src={image.isPlaceholder ? "/images/wines/wine-bottle.png" : image.src}
-              alt=""
-              fill
-              unoptimized
-              sizes="(min-width: 480px) 72px, 68px"
-              className="object-contain p-1"
+                src={
+                  image.isPlaceholder
+                    ? "/images/wines/wine-bottle.png"
+                    : image.src
+                }
+                alt=""
+                fill
+                unoptimized
+                sizes="(min-width: 480px) 72px, 68px"
+                className="object-contain p-1"
               />
               {image.isPlaceholder ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-                  <span className="whitespace-pre-line text-center text-[9px] font-bold text-white">{"이미지\n준비중"}</span>
+                  <span className="whitespace-pre-line text-center text-[9px] font-bold text-white">
+                    {"이미지\n준비중"}
+                  </span>
                 </div>
               ) : null}
             </>
@@ -210,7 +235,7 @@ function RecommendationFront({
             onClick={() => slide.comment && onExpandField("comment")}
             className={cn(
               "mt-1.5 line-clamp-2 block w-full text-left text-[14px] font-medium leading-relaxed text-ink-page disabled:cursor-default",
-              slide.comment && "cursor-pointer"
+              slide.comment && "cursor-pointer",
             )}
           >
             {slide.comment || "추천 설명을 준비하고 있어요."}
@@ -226,7 +251,7 @@ function RecommendationFront({
             onClick={() => slide.reason && onExpandField("reason")}
             className={cn(
               "mt-1.5 block w-full text-left text-[13px] leading-relaxed text-ink-secondary disabled:cursor-default",
-              slide.reason && "line-clamp-4 cursor-pointer"
+              slide.reason && "line-clamp-4 cursor-pointer",
             )}
           >
             {slide.reason || "메뉴와의 궁합을 분석하고 있어요."}
@@ -267,10 +292,13 @@ function WineDetailBack({
 }) {
   const regionSegments = formatWineRegionSegments(wine.region);
   const alcoholLabel = formatWineAlcohol(wine.alcohol);
-  const aromas = wine.aromas?.filter((aroma) => aroma.trim().length > 0) ?? [];
+  const aromas = normalizeWineAromas(wine.aromas);
+  const variety = normalizeWineText(wine.variety);
   const detailItems = [
-    wine.variety ? { label: "품종", value: wine.variety } : null,
-    wine.vintage != null ? { label: "빈티지", value: String(wine.vintage) } : null,
+    variety ? { label: "품종", value: variety } : null,
+    wine.vintage != null
+      ? { label: "빈티지", value: String(wine.vintage) }
+      : null,
     alcoholLabel ? { label: "도수", value: alcoholLabel } : null,
   ].filter((item): item is { label: string; value: string } => item !== null);
 
@@ -296,7 +324,7 @@ function WineDetailBack({
     <Card
       className={cn(
         "relative flex flex-col overflow-y-auto rounded-[18px] border border-white/80 bg-white/58 p-5 text-ink-page shadow-[0_18px_44px_rgba(72,52,112,0.08)] backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        CARD_HEIGHT
+        CARD_HEIGHT,
       )}
     >
       <div className="flex items-center justify-between gap-3">
@@ -313,10 +341,14 @@ function WineDetailBack({
             "relative z-20 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-transparent transition-colors",
             showDetailPreparingOverlay
               ? "text-white hover:bg-white/20"
-              : "text-primary hover:bg-primary/[0.10] hover:text-ink-emphasis"
+              : "text-primary hover:bg-primary/[0.10] hover:text-ink-emphasis",
           )}
         >
-          <RotateCcw className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
+          <RotateCcw
+            className="h-[18px] w-[18px]"
+            strokeWidth={2.2}
+            aria-hidden
+          />
         </button>
       </div>
 
@@ -339,7 +371,10 @@ function WineDetailBack({
             {regionSegments[0]}
           </span>
           {regionSegments.slice(1).map((segment, index) => (
-            <span key={`${segment}-${index}`} className="flex items-center gap-1.5">
+            <span
+              key={`${segment}-${index}`}
+              className="flex items-center gap-1.5"
+            >
               {index > 0 ? (
                 <span aria-hidden className="text-ink-muted">
                   ›
@@ -360,7 +395,9 @@ function WineDetailBack({
                 key={label}
                 className="min-w-0 rounded-[14px] border border-white/60 bg-primary/[0.10] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl"
               >
-                <dt className="text-[11px] font-medium text-ink-muted">{label}</dt>
+                <dt className="text-[11px] font-medium text-ink-muted">
+                  {label}
+                </dt>
                 <dd className="mt-1 text-[13px] font-bold leading-snug text-ink-emphasis">
                   -
                 </dd>
@@ -409,7 +446,6 @@ function WineDetailBack({
             </div>
           </div>
         ) : null}
-
       </div>
 
       {showDetailPreparingOverlay ? (
@@ -461,7 +497,7 @@ function TasteRow({ label, value }: { label: string; value: number | null }) {
                     "h-1.5 flex-1 rounded-full",
                     index < filled
                       ? "bg-gradient-to-r from-[#8E72F3] to-[#6E3AF5]"
-                      : "bg-ink-muted/20"
+                      : "bg-ink-muted/20",
                   )}
                 />
               ))}
@@ -471,7 +507,9 @@ function TasteRow({ label, value }: { label: string; value: number | null }) {
             </span>
           </>
         ) : (
-          <span className="text-[12px] font-medium text-ink-muted">정보 없음</span>
+          <span className="text-[12px] font-medium text-ink-muted">
+            정보 없음
+          </span>
         )}
       </dd>
     </div>

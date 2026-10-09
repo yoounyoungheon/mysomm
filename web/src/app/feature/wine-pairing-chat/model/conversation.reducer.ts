@@ -28,7 +28,7 @@ export const initialConversationState: ConversationState = {
  */
 export function conversationReducer(
   state: ConversationState,
-  action: ConversationAction
+  action: ConversationAction,
 ): ConversationState {
   switch (action.type) {
     case "PRESENTATION_BATCH":
@@ -41,7 +41,12 @@ export function conversationReducer(
         errorMessage: undefined,
         turns: [
           ...state.turns,
-          { kind: "pairing", source: "initial", slides: [], status: "streaming" },
+          {
+            kind: "pairing",
+            source: "initial",
+            slides: [],
+            status: "streaming",
+          },
         ],
       };
 
@@ -49,7 +54,9 @@ export function conversationReducer(
       // 낙관적으로 추가된 빈 ChatTurn이 있으면 제거하고 PairingTurn으로 대체한다.
       const last = state.turns[state.turns.length - 1];
       const baseTurns =
-        last?.kind === "chat" && last.answer === "" && last.status === "streaming"
+        last?.kind === "chat" &&
+        last.answer === "" &&
+        last.status === "streaming"
           ? state.turns.slice(0, -1)
           : state.turns;
 
@@ -72,7 +79,7 @@ export function conversationReducer(
 
     case "PAIRING_SLIDE_FIELD":
       return updateLastPairingTurn(state, (turn) =>
-        appendLastSlideField(turn, action.field, action.data)
+        appendLastSlideField(turn, action.field, action.data),
       );
 
     case "PAIRING_SLIDE_COMMIT": {
@@ -108,7 +115,8 @@ export function conversationReducer(
     case "PAIRING_DONE": {
       const lastPairingTurn = findLastTurnOfKind(state, "pairing");
       const committedInTurn =
-        lastPairingTurn?.slides.filter((slide) => slide.isCommitted).length ?? 0;
+        lastPairingTurn?.slides.filter((slide) => slide.isCommitted).length ??
+        0;
 
       // committed JSON slide가 하나도 없이 종료되면 성공으로 확정하지 않는다.
       if (committedInTurn === 0) {
@@ -153,7 +161,12 @@ export function conversationReducer(
         errorMessage: undefined,
         turns: [
           ...state.turns,
-          { kind: "chat", question: action.question, answer: "", status: "streaming" },
+          {
+            kind: "chat",
+            question: action.question,
+            answer: "",
+            status: "streaming",
+          },
         ],
       };
 
@@ -200,7 +213,7 @@ function createSlide(): PairingSlideView {
 function appendLastSlideField(
   turn: PairingTurn,
   field: "rank" | "name" | "comment" | "reason",
-  chunk: string
+  chunk: string,
 ): PairingTurn {
   const slides = [...turn.slides];
   const lastSlide = slides[slides.length - 1];
@@ -221,9 +234,9 @@ function appendLastSlideField(
 
 function findLastTurnOfKind<K extends ConversationTurn["kind"]>(
   state: ConversationState,
-  kind: K
+  kind: K,
 ): Extract<ConversationTurn, { kind: K }> | undefined {
-  const index = state.turns.findLastIndex((turn) => turn.kind === kind);
+  const index = lastTurnIndex(state.turns, kind);
   return index === -1
     ? undefined
     : (state.turns[index] as Extract<ConversationTurn, { kind: K }>);
@@ -232,7 +245,7 @@ function findLastTurnOfKind<K extends ConversationTurn["kind"]>(
 /** 마지막 pairing turn을 갱신한다. 없으면 상태를 그대로 반환한다(defensive). */
 function updateLastPairingTurn(
   state: ConversationState,
-  updater: (turn: PairingTurn) => PairingTurn
+  updater: (turn: PairingTurn) => PairingTurn,
 ): ConversationState {
   return updateLastTurnOfKind(state, "pairing", updater);
 }
@@ -240,7 +253,7 @@ function updateLastPairingTurn(
 /** 마지막 chat turn을 갱신한다. 없으면 상태를 그대로 반환한다(defensive). */
 function updateLastChatTurn(
   state: ConversationState,
-  updater: (turn: ChatTurn) => ChatTurn
+  updater: (turn: ChatTurn) => ChatTurn,
 ): ConversationState {
   return updateLastTurnOfKind(state, "chat", updater);
 }
@@ -248,21 +261,23 @@ function updateLastChatTurn(
 function updateLastTurnOfKind<K extends ConversationTurn["kind"]>(
   state: ConversationState,
   kind: K,
-  updater: (turn: Extract<ConversationTurn, { kind: K }>) => ConversationTurn
+  updater: (turn: Extract<ConversationTurn, { kind: K }>) => ConversationTurn,
 ): ConversationState {
-  const index = state.turns.findLastIndex((turn) => turn.kind === kind);
+  const index = lastTurnIndex(state.turns, kind);
   if (index === -1) {
     return state;
   }
 
   const turns = [...state.turns];
-  turns[index] = updater(turns[index] as Extract<ConversationTurn, { kind: K }>);
+  turns[index] = updater(
+    turns[index] as Extract<ConversationTurn, { kind: K }>,
+  );
   return { ...state, turns };
 }
 
 function updateLastSlide(
   turn: PairingTurn,
-  updater: (slide: PairingSlideView) => PairingSlideView
+  updater: (slide: PairingSlideView) => PairingSlideView,
 ): PairingTurn {
   if (turn.slides.length === 0) {
     return turn;
@@ -271,4 +286,14 @@ function updateLastSlide(
   const slides = [...turn.slides];
   slides[slides.length - 1] = updater(slides[slides.length - 1]);
   return { ...turn, slides };
+}
+
+function lastTurnIndex(
+  turns: ConversationTurn[],
+  kind: ConversationTurn["kind"],
+): number {
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    if (turns[index].kind === kind) return index;
+  }
+  return -1;
 }

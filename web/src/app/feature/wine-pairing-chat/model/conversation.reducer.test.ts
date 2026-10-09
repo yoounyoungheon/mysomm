@@ -1,19 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { PairingSlidePayload } from "@/app/entity/wine-pairing/model/wine-pairing.type";
 import {
   conversationReducer,
   initialConversationState,
 } from "./conversation.reducer";
-import type { ConversationAction, ConversationState } from "./conversation.types";
+import type {
+  ConversationAction,
+  ConversationState,
+} from "./conversation.types";
 
 function reduce(
   state: ConversationState,
-  actions: ConversationAction[]
+  actions: ConversationAction[],
 ): ConversationState {
   return actions.reduce(conversationReducer, state);
 }
 
-function payload(overrides: Partial<PairingSlidePayload> = {}): PairingSlidePayload {
+function payload(
+  overrides: Partial<PairingSlidePayload> = {},
+): PairingSlidePayload {
   return {
     pairingId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     rank: 1,
@@ -38,6 +43,29 @@ function payload(overrides: Partial<PairingSlidePayload> = {}): PairingSlidePayl
 }
 
 describe("conversationReducer - pairing", () => {
+  it("does not depend on findLastIndex for pairing and chat", () => {
+    const unsupported = vi
+      .spyOn(Array.prototype, "findLastIndex")
+      .mockImplementation(() => {
+        throw new Error("Unsupported browser API");
+      });
+    try {
+      const state = reduce(initialConversationState, [
+        { type: "PAIRING_START" },
+        { type: "PAIRING_SLIDE_FIELD", field: "name", data: "와인" },
+        { type: "PAIRING_SLIDE_COMMIT", payload: payload() },
+        { type: "PAIRING_DONE" },
+        { type: "CHAT_START", question: "질문" },
+        { type: "CHAT_APPEND", chunk: "답변" },
+        { type: "CHAT_DONE" },
+      ]);
+      expect(state.pairing).toBe("done");
+      expect(state.chat).toBe("idle");
+      expect(unsupported).not.toHaveBeenCalled();
+    } finally {
+      unsupported.mockRestore();
+    }
+  });
   it("같은 fieldName의 STREAM 청크를 순서대로 append한다", () => {
     const state = reduce(initialConversationState, [
       { type: "PAIRING_START" },
@@ -65,7 +93,9 @@ describe("conversationReducer - pairing", () => {
     if (turn.kind === "pairing") {
       expect(turn.slides).toHaveLength(1);
       expect(turn.slides[0].name).toBe("클라우디 베이 소비뇽 블랑");
-      expect(turn.slides[0].imageUrl).toBe("https://example.com/cloudy-bay.jpg");
+      expect(turn.slides[0].imageUrl).toBe(
+        "https://example.com/cloudy-bay.jpg",
+      );
       expect(turn.slides[0].isCommitted).toBe(true);
     }
   });

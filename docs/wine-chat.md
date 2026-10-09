@@ -1,5 +1,11 @@
 # `/wine/chat` 페어링·후속 대화 개발 문서
 
+## 응답 타입 및 브라우저 예외 방어
+
+SSE JSON은 `normalizePairingPayload`에서 필수 ID/와인명/요약/이유/양수 정수 순위를 검사한다. 비문자열 도수·지역·국가·이미지·품종·와인 타입은 null, 잘못된 taste/vintage는 null, 잘못된 aromas 원소/가격은 제외한다. 객체/배열 형태의 필수 값이 잘못되면 해당 추천을 상태에 전달하지 않으며 유효 결과 없이 종료하면 기존 오류 안내를 사용한다.
+
+공통 포맷·이미지 helper는 문자열에만 trim을 호출한다. null/비정상 SSE envelope도 건너뛰며 API 오류 message가 문자열이 아니면 기본 안내를 사용한다. reducer는 findLastIndex 대신 역순 검색해 구형 브라우저 기능 의존성을 제거했다. 기존 서버 계약·스트리밍 주기·상태 전이·flip 동작은 유지한다.
+
 이 경로는 WineRecommendationCarouselA를 사용한다. keywords에서 스냅샷 저장 후 공통으로 이 경로에 진입하며, Middleware가 인증 그룹 A는 통과시키고 B는 `/wine/recommend`로 redirect한다. B 화면과 서버 상태·스트리밍·후속 대화 로직은 공유한다.
 
 ## 홈 이동과 서버 로그

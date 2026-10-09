@@ -1,4 +1,5 @@
 import type { Wine } from "../model/wine.type";
+import { normalizeWineText } from "./wine-format";
 
 /**
  * 병 이미지가 없을 때 사용할 fallback 이미지들.
@@ -31,9 +32,9 @@ function hashSeed(seed: string): number {
  */
 export function resolveWineBottleImage(
   wine: Pick<Wine, "wineBottleImageUrl">,
-  seed: string
+  seed: string,
 ): ResolvedWineImage {
-  const url = wine.wineBottleImageUrl?.trim();
+  const url = normalizeWineText(wine.wineBottleImageUrl);
   if (url && url.length > 0) {
     return { src: url, isPlaceholder: false };
   }

@@ -6,15 +6,49 @@ import {
   formatWineRegionLines,
   formatWineRegionSegments,
   normalizeRegionSegment,
+  normalizeWineAromas,
+  normalizeWineText,
 } from "./wine-format";
 import type { WinePrice } from "../model/wine.type";
 
+describe("malformed external wine values", () => {
+  it.each([13.5, false, {}, [], null, undefined])(
+    "does not trim non-strings %#",
+    (value) => {
+      expect(normalizeWineText(value)).toBe("");
+      // Deliberately violate the static DTO to simulate untrusted JSON.
+      const invalid = value as unknown as string;
+      expect(formatWineAlcohol(invalid)).toBeNull();
+      expect(formatWineRegionLines(invalid)).toEqual([]);
+      expect(formatWineRegionSegments(invalid)).toEqual([]);
+      expect(normalizeRegionSegment(invalid)).toBe("");
+    },
+  );
+  it("filters malformed aromas and rejects non-array lists", () => {
+    expect(normalizeWineAromas([null, {}, 5, "apple", " "])).toEqual(["apple"]);
+    expect(normalizeWineAromas({})).toEqual([]);
+    expect(normalizeWineAromas("apple")).toEqual([]);
+  });
+  it("ignores malformed prices", () => {
+    expect(formatWinePriceLabel({} as WinePrice[])).toBeNull();
+    expect(
+      formatWinePriceLabel([
+        null,
+        {},
+        { amount: "100", currency: "KRW" },
+      ] as unknown as WinePrice[]),
+    ).toBeNull();
+  });
+});
+
 describe("formatWineOrigin", () => {
   it("존재하는 값만 이어붙인다", () => {
-    expect(
-      formatWineOrigin({ country: "France", region: "Bordeaux" })
-    ).toBe("France · Bordeaux");
-    expect(formatWineOrigin({ country: "France", region: null })).toBe("France");
+    expect(formatWineOrigin({ country: "France", region: "Bordeaux" })).toBe(
+      "France · Bordeaux",
+    );
+    expect(formatWineOrigin({ country: "France", region: null })).toBe(
+      "France",
+    );
     expect(formatWineOrigin({ country: null, region: null })).toBe("");
   });
 });
@@ -45,15 +79,13 @@ describe("formatWineRegionLines", () => {
   it("국가(첫 세그먼트) 제외 + 괄호(영문 병기) 제거한 하위 경로를 줄 배열로 반환한다", () => {
     expect(
       formatWineRegionLines(
-        "미국(U.S.A) > 캘리포니아(California) > 소노마 카운티(Sonoma County)"
-      )
+        "미국(U.S.A) > 캘리포니아(California) > 소노마 카운티(Sonoma County)",
+      ),
     ).toEqual(["캘리포니아", "소노마 카운티"]);
   });
 
   it("국가 제외 후에도 최대 3줄까지만 남기고 나머지는 잘라낸다", () => {
-    expect(
-      formatWineRegionLines("A > B > C > D > E")
-    ).toEqual(["B", "C", "D"]);
+    expect(formatWineRegionLines("A > B > C > D > E")).toEqual(["B", "C", "D"]);
   });
 
   it("국가 세그먼트만 있으면(중복) 빈 배열을 반환한다", () => {
@@ -69,7 +101,9 @@ describe("formatWineRegionLines", () => {
 describe("normalizeRegionSegment", () => {
   it("뒤에 붙은 괄호(영문 병기)를 제거하고 한글 이름만 남긴다", () => {
     expect(normalizeRegionSegment("미국(U.S.A)")).toBe("미국");
-    expect(normalizeRegionSegment("나파 카운티(Napa County)")).toBe("나파 카운티");
+    expect(normalizeRegionSegment("나파 카운티(Napa County)")).toBe(
+      "나파 카운티",
+    );
   });
 
   it("괄호를 제거하면 빈 값이 되는 경우 원본을 유지한다", () => {
@@ -81,8 +115,8 @@ describe("formatWineRegionSegments", () => {
   it("모든 세그먼트를 괄호 제거해 배열로 반환한다(국가 포함)", () => {
     expect(
       formatWineRegionSegments(
-        "미국(U.S.A) > 캘리포니아(California) > 나파 밸리(Napa Valley)"
-      )
+        "미국(U.S.A) > 캘리포니아(California) > 나파 밸리(Napa Valley)",
+      ),
     ).toEqual(["미국", "캘리포니아", "나파 밸리"]);
   });
 

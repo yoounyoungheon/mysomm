@@ -1,10 +1,23 @@
 import type { Wine, WinePrice } from "../model/wine.type";
 
+/** 외부 응답의 타입은 런타임에 확인한다. 숫자/객체를 문자열로 꾸미지 않는다. */
+export function normalizeWineText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function normalizeWineAromas(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(normalizeWineText).filter(Boolean)
+    : [];
+}
+
 /** country · region 조합. 존재하는 값만 이어붙인다. */
 export function formatWineOrigin(
-  wine: Pick<Wine, "country" | "region">
+  wine: Pick<Wine, "country" | "region">,
 ): string {
-  return [wine.country, wine.region].filter(Boolean).join(" · ");
+  return [normalizeWineText(wine.country), normalizeWineText(wine.region)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** description 지역 경로에 표시할 최대 줄 수. */
@@ -16,6 +29,7 @@ export const MAX_WINE_REGION_LINES = 3;
  * 괄호를 제거하면 빈 문자열이 되는 경우(영문만 있는 값)에는 원본을 유지한다.
  */
 export function normalizeRegionSegment(segment: string): string {
+  if (typeof segment !== "string") return "";
   const stripped = segment.replace(/\s*\([^()]*\)\s*$/, "").trim();
   return stripped.length > 0 ? stripped : segment.trim();
 }
@@ -29,9 +43,9 @@ export function normalizeRegionSegment(segment: string): string {
  */
 export function formatWineRegionLines(
   region: string | null | undefined,
-  maxLines: number = MAX_WINE_REGION_LINES
+  maxLines: number = MAX_WINE_REGION_LINES,
 ): string[] {
-  const value = region?.trim();
+  const value = normalizeWineText(region);
   if (!value) return [];
 
   const segments = value
@@ -48,24 +62,34 @@ export function formatWineRegionLines(
  * 우선순위(KRW → USD → EUR)로 첫 유효 가격을 골라 통화 단위/기호로 표시한다.
  */
 export function formatWinePriceLabel(
-  prices: WinePrice[] | null | undefined
+  prices: WinePrice[] | null | undefined,
 ): string | null {
-  if (!prices || prices.length === 0) return null;
+  if (!Array.isArray(prices) || prices.length === 0) return null;
 
   const priorityOrder = ["KRW", "USD", "EUR"] as const;
-  const sorted = [...prices].sort(
-    (a, b) => priorityOrder.indexOf(a.currency) - priorityOrder.indexOf(b.currency)
-  );
+  const sorted = prices
+    .filter(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof item.amount === "number" &&
+        Number.isFinite(item.amount) &&
+        priorityOrder.includes(item.currency),
+    )
+    .sort(
+      (a, b) =>
+        priorityOrder.indexOf(a.currency) - priorityOrder.indexOf(b.currency),
+    );
   const price = sorted.find((item) => Number.isFinite(item.amount));
   if (!price) return null;
 
   const amountLabel = price.amount.toLocaleString(
-    price.currency === "KRW" ? "ko-KR" : "en-US"
+    price.currency === "KRW" ? "ko-KR" : "en-US",
   );
 
   return price.currency === "KRW"
-    ? `${amountLabel}${price.koreanUnit || "원"}`
-    : `${price.currencySign || price.currency}${amountLabel}`;
+    ? `${amountLabel}${normalizeWineText(price.koreanUnit) || "원"}`
+    : `${normalizeWineText(price.currencySign) || price.currency}${amountLabel}`;
 }
 
 /**
@@ -73,9 +97,9 @@ export function formatWinePriceLabel(
  * `\N%`, `N%`처럼 DB null placeholder가 들어오면 `???`로 표시한다.
  */
 export function formatWineAlcohol(
-  alcohol: string | null | undefined
+  alcohol: string | null | undefined,
 ): string | null {
-  const label = alcohol?.trim();
+  const label = normalizeWineText(alcohol);
   if (!label) return null;
   // "\N"(DB null 표기)로 시작하는 값은 유효 도수가 아니다.
   if (label.replace(/\\/g, "").toUpperCase().startsWith("N")) {
@@ -86,9 +110,9 @@ export function formatWineAlcohol(
 
 /** `region` 계층 경로를 `>` 기준 세그먼트 배열로 반환한다(배지 표시용, 국가 포함). */
 export function formatWineRegionSegments(
-  region: string | null | undefined
+  region: string | null | undefined,
 ): string[] {
-  const value = region?.trim();
+  const value = normalizeWineText(region);
   if (!value) return [];
   return value
     .split(">")

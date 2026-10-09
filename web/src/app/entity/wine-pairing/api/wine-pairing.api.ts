@@ -18,14 +18,14 @@ type ErrorResponse = {
 export async function* streamWinePairing(
   request: WinePairingRequest,
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): AsyncGenerator<PairingStreamEvent, void, undefined> {
   const body = await openBffStream(
     "/api/wine-pairings/pairing",
     request,
     sessionId,
     "와인 추천을 불러오지 못했습니다.",
-    signal
+    signal,
   );
 
   yield* parseSseStream<PairingStreamEvent>(body);
@@ -38,14 +38,14 @@ export async function* streamWinePairing(
 export async function* streamWinePairingChat(
   request: WinePairingChatRequest,
   sessionId: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): AsyncGenerator<PairingChatStreamEvent, void, undefined> {
   const body = await openBffStream(
     "/api/wine-pairings/chat",
     request,
     sessionId,
     "채팅 응답을 불러오지 못했습니다.",
-    signal
+    signal,
   );
 
   yield* parseSseStream<PairingChatStreamEvent>(body);
@@ -56,7 +56,7 @@ async function openBffStream(
   request: unknown,
   sessionId: string,
   fallbackMessage: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ReadableStream<Uint8Array>> {
   const response = await fetch(path, {
     method: "POST",
@@ -82,7 +82,9 @@ async function openBffStream(
 async function getErrorMessage(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as ErrorResponse;
-    return data.message || fallback;
+    return typeof data?.message === "string" && data.message
+      ? data.message
+      : fallback;
   } catch {
     return fallback;
   }

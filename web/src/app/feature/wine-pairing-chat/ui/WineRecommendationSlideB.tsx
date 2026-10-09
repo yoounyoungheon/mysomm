@@ -3,6 +3,7 @@ import { ChevronRight, FileText } from "lucide-react";
 import {
   formatWineAlcohol,
   formatWineRegionSegments,
+  normalizeWineText,
 } from "@/app/entity/wine/lib/wine-format";
 import Button from "@/app/shared/ui/atom/button";
 import WineImageSkeleton from "@/app/shared/ui/atom/wine-image-skeleton";
@@ -23,11 +24,15 @@ export default function WineRecommendationSlideB({
   className,
 }: WineRecommendationSlideProps) {
   const wine = slide.wine;
-  const imageUrl = wine?.wineBottleImageUrl?.trim() || slide.imageUrl?.trim();
+  const imageUrl =
+    normalizeWineText(wine?.wineBottleImageUrl) ||
+    normalizeWineText(slide.imageUrl);
   const pendingImage = !imageUrl && !slide.isCommitted;
   const alcohol = formatWineAlcohol(wine?.alcohol);
-  const hasReason = Boolean(slide.reason.trim());
+  const hasReason = Boolean(normalizeWineText(slide.reason));
   const region = formatWineRegionSegments(wine?.region).join(" · ");
+  const country = normalizeWineText(wine?.country);
+  const variety = normalizeWineText(wine?.variety);
   const summary = slide.comment || "어울리는 와인을 추천하고 있어요";
   const isLongSummary = Array.from(summary).length > 24;
 
@@ -60,13 +65,13 @@ export default function WineRecommendationSlideB({
             {wine?.wineName || slide.name || "추천 와인을 찾고 있어요"}
           </h4>
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-secondary">
-            {wine?.country?.trim() ? (
+            {country ? (
               <span className="rounded-full border border-primary/30 px-2 py-0.5 text-primary">
-                {wine.country}
+                {country}
               </span>
             ) : null}
             {region ? <span className="break-words">{region}</span> : null}
-            {wine?.variety?.trim() ? <span>{wine.variety}</span> : null}
+            {variety ? <span>{variety}</span> : null}
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-ink-secondary">
             <span className="rounded-lg bg-white/90 px-2 py-1">

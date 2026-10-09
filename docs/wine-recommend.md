@@ -1,5 +1,9 @@
 # `/wine/recommend` 추천 B 화면
 
+## 응답 타입 예외 방어
+
+A와 공유하는 `normalizePairingPayload`에서 SSE JSON의 필수 필드를 검증하고 잘못된 nullable 상세 필드를 null/빈 목록으로 정리한다. B의 이미지·국가·품종·추천 이유 표시도 공통 `normalizeWineText`를 사용해 비문자열에 trim을 호출하지 않는다. 필수 필드 오류는 기존 추천 오류 흐름으로 처리하며 CSS disclosure·요약 크기·후속 채팅 계약은 유지한다.
+
 요약 문구(comment)는 공백·마침표를 포함해 24자 이하면 기존 23px, 24자를 초과하면 20px으로 표시한다. 표시 문자열의 Unicode code point 수로 판단하며 SSE 갱신 시에도 현재 문구 길이에 따라 계산한다. 문구 자체나 A UI, 와인명 스타일은 변경하지 않는다. Storybook에 23/24/25자 경계 검증을 추가했다.
 
 디자인 기준은 `designs/enhanced_design_v2.png`와 추천 이유 펼침 스크린샷이다. `/wine/keywords`가 기존 snapshot을 저장하고 공통 경로 `/wine/chat`으로 replace 이동하면 Middleware가 B 인증 그룹을 이 경로로 redirect한다. A 그룹의 이 경로 직접 접근은 `/wine/chat`으로 redirect한다. page는 Server Component이며 기존 WinePairingChatView에 recommendationVariant="B"를 전달한다. 기존 `/wine/chat`은 기본 A UI를 유지한다.
