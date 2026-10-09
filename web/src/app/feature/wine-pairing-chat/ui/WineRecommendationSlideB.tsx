@@ -41,19 +41,9 @@ export default function WineRecommendationSlideB({
       data-recommendation-slide="B"
       className={cn("flex min-w-0 flex-col gap-3", className)}
     >
-      <div>
-        <p className="text-[12px] font-extrabold tracking-wide text-primary">
-          MYSOMM PICK
-        </p>
-        <h3
-          className={cn(
-            "mt-2 whitespace-pre-line break-words font-extrabold leading-tight text-ink-page",
-            isLongSummary ? "text-[20px]" : "text-[23px]",
-          )}
-        >
-          {summary}
-        </h3>
-      </div>
+      <p className="text-[12px] font-extrabold tracking-wide text-primary">
+        MYSOMM PICK
+      </p>
       <div className="flex items-start gap-4 py-2">
         <div className="min-w-0 flex-1">
           {slide.rank ? (
@@ -113,6 +103,14 @@ export default function WineRecommendationSlideB({
           )}
         </div>
       </div>
+      <h3
+        className={cn(
+          "whitespace-pre-line break-words font-extrabold leading-tight text-ink-page",
+          isLongSummary ? "text-[20px]" : "text-[23px]",
+        )}
+      >
+        {`"${summary}"`}
+      </h3>
       <Card className="rounded-[20px] border-white/70 bg-white/90 p-4 shadow-none">
         <h4 className="text-[15px] font-bold text-ink-card">
           이 와인은 이런 스타일이에요

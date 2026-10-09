@@ -1,5 +1,13 @@
 # `/wine/recommend` WineRecommendationCarouselB 설계
 
+## 정보 표시 순서 변경 (2026-10-09)
+
+- 한줄평 전체를 큰따옴표로 감싼다. 배경 강조 없이 기존 글자색을 유지하고, 24자 크기 판단은 장식 따옴표를 제외한 원문 길이를 기준으로 유지한다.
+- 사용자 제공 스크린샷의 화살표를 기준으로 순위·와인명·원산지·빈티지·도수·이미지를 추천 요약보다 먼저 배치한다. MYSOMM PICK 라벨은 최상단에 유지한다.
+- JSX 순서를 변경해 시각적 순서와 DOM 읽기 순서를 일치시킨다. 기존 공유 Card/Button/DisclosureCard, CSS 기반 설명 토글, 24자 요약 크기 규칙과 이미지 크기는 유지한다.
+- UI만 변경한다. RSC/RCC 경계, 기존 slides props, API/BFF, SSE·서버 상태와 A 화면은 변경하지 않는다.
+- 기존 B Storybook Default에 DOM/화면 배치 순서 검증을 추가하고 모든 B 스토리와 타입·린트를 확인한다.
+
 ## 응답 타입 방어 (2026-10-09)
 
 - A와 공유하는 SSE 경계 정규화 및 공통 문자열 helper로 잘못된 nullable 타입을 빈 값으로 처리한다. 이미지·국가·품종·도수·지역·aromas의 비문자열 메서드 호출을 방지한다.
@@ -30,8 +38,9 @@ WineRecommendPage /wine/recommend (Server shell)
    └─ WineRecommendationCarouselB (동일 slides 입력)
       ├─ 가로 scroll-snap viewport
       │  └─ WineRecommendationSlideB[]
-      │     ├─ MYSOMM PICK / 추천 요약(comment)
+      │     ├─ MYSOMM PICK
       │     ├─ 순위 + 와인명 + 국가/지역 + 빈티지/도수 + 이미지
+      │     ├─ 추천 요약(comment)
       │     ├─ “이 와인은 이런 스타일이에요” 카드
       │     │  └─ 바디 / 당도 / 타닌 / 산도 (2×2)
       │     ├─ 추천 이유 펼침 카드

@@ -48,7 +48,7 @@ export const Summary23Characters: Story = {
   args: { slides: [{ ...slide, comment: summaryAtLimit.slice(0, -1) }] },
   play: async ({ canvasElement }) => {
     const heading = canvasElement.querySelector("h3")!;
-    expect(Array.from(heading.textContent!).length).toBe(23);
+    expect(heading.textContent).toBe(`"${summaryAtLimit.slice(0, -1)}"`);
     expect(getComputedStyle(heading).fontSize).toBe("23px");
   },
 };
@@ -56,8 +56,7 @@ export const Summary24Characters: Story = {
   args: { slides: [{ ...slide, comment: summaryAtLimit }] },
   play: async ({ canvasElement }) => {
     const heading = canvasElement.querySelector("h3")!;
-    expect(heading.textContent).toBe(summaryAtLimit);
-    expect(Array.from(heading.textContent!).length).toBe(24);
+    expect(heading.textContent).toBe(`"${summaryAtLimit}"`);
     expect(getComputedStyle(heading).fontSize).toBe("23px");
   },
 };
@@ -65,7 +64,7 @@ export const Summary25Characters: Story = {
   args: { slides: [{ ...slide, comment: `${summaryAtLimit}!` }] },
   play: async ({ canvasElement }) => {
     const heading = canvasElement.querySelector("h3")!;
-    expect(Array.from(heading.textContent!).length).toBe(25);
+    expect(heading.textContent).toBe(`"${summaryAtLimit}!"`);
     expect(getComputedStyle(heading).fontSize).toBe("20px");
   },
 };
@@ -73,6 +72,16 @@ export const Summary25Characters: Story = {
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const wineName = canvas.getByRole("heading", { name: slide.name });
+    const summary = canvas.getByRole("heading", { name: `"${slide.comment}"` });
+    const wineInfo = wineName.parentElement!.parentElement!;
+    expect(
+      wineInfo.compareDocumentPosition(summary) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(wineInfo.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      summary.getBoundingClientRect().top,
+    );
     const link = canvas.getByRole("link", { name: /이 와인 자세히 보기/ });
     await expect(link).toHaveAttribute("href", "https://www.wine21.com/");
     await expect(link).toHaveAttribute("target", "_blank");

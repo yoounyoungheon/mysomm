@@ -10,8 +10,9 @@ A와 공유하는 `normalizePairingPayload`에서 SSE JSON의 필수 필드를 �
 
 ## 구조 및 상태
 
-- WineRecommendationCarouselB → WineRecommendationSlideB: MYSOMM PICK/요약, 순위·이름·국가·지역·빈티지·도수·병 이미지, 2×2 맛 지표, 추천 이유, Wine21 링크.
-- B에서는 기존 공통 도입 문구를 sr-only로 유지해 시안처럼 MYSOMM PICK과 추천 요약이 먼저 보이게 한다. A의 보이는 도입 문구는 그대로다.
+- 한줄평 전체를 큰따옴표로 감싸며 배경 강조는 사용하지 않는다. 24자 글자 크기 기준은 따옴표를 제외한 원문에 적용한다.
+- WineRecommendationCarouselB → WineRecommendationSlideB: MYSOMM PICK, 순위·이름·국가·지역·빈티지·도수·병 이미지, 추천 요약, 2×2 맛 지표, 추천 이유, Wine21 링크.
+- 사용자 스크린샷 피드백에 따라 와인 정보가 추천 요약보다 먼저 보이도록 JSX/DOM 순서를 변경했다. MYSOMM PICK 라벨은 최상단이며 기존 공통 도입 문구는 sr-only로 유지한다. A 화면과 서버 상태·API 흐름은 변경하지 않는다.
 - CSS scroll-snap 기반 가로 스와이프 및 버튼형 dot 이동. 현재 인덱스만 로컬 UI 상태이며 새 결과가 사용자의 읽는 위치를 강제로 이동하지 않는다.
 - 각 슬라이드는 viewport 전체 너비이고 20px 여백은 슬라이드 내부에 둔다. 정지 상태에서 다음 카드는 보이지 않는다. dot은 A와 동일한 6px 원·6px 간격 및 활성/비활성 색을 사용한다.
 - shared/ui DisclosureCard는 Card와 native details/summary 합성. 열림은 브라우저 open 속성, 화살표는 group-open CSS로 표현한다. React state·onToggle·타이머 없이 Enter/Space 및 클릭으로 열고 닫는다. 닫힌 본문은 브라우저가 접근성 트리에서 제외하며 청크 갱신 시 열린 노드를 유지한다.
