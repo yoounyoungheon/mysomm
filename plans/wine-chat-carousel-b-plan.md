@@ -1,5 +1,12 @@
 # `/wine/recommend` WineRecommendationCarouselB 설계
 
+## 요약 문구 길이에 따른 글자 크기
+
+- B의 요약(comment)은 공백·마침표 포함 24자 이하면 기존 23px을 유지하고, 25자부터 20px을 사용한다.
+- 표시할 문구에서 Unicode code point 개수를 계산한다. 문구를 자르거나 공백/마침표를 제거하지 않는다.
+- SSE로 문구가 늘어날 때 현재 표시 문자열로 크기를 계산한다. React state/effect나 서버/API 변경은 추가하지 않는다.
+- Storybook에서 23/24/25자 경계를 확인하고 기존 B 회귀 테스트를 수행한다. A 화면과 와인명 크기는 변경하지 않는다.
+
 ## 1. 목적과 범위
 
 - 기존 `WineRecommendationCarousel`의 파일·컴포넌트·스토리 이름을 `WineRecommendationCarouselA`로 변경하고 동작은 보존한다. 비교용 `WineRecommendationCarouselB`를 추가한다.

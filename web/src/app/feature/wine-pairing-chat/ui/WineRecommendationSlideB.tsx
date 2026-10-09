@@ -28,6 +28,8 @@ export default function WineRecommendationSlideB({
   const alcohol = formatWineAlcohol(wine?.alcohol);
   const hasReason = Boolean(slide.reason.trim());
   const region = formatWineRegionSegments(wine?.region).join(" · ");
+  const summary = slide.comment || "어울리는 와인을 추천하고 있어요";
+  const isLongSummary = Array.from(summary).length > 24;
 
   return (
     <article
@@ -38,8 +40,13 @@ export default function WineRecommendationSlideB({
         <p className="text-[12px] font-extrabold tracking-wide text-primary">
           MYSOMM PICK
         </p>
-        <h3 className="mt-2 whitespace-pre-line break-words text-[23px] font-extrabold leading-tight text-ink-page">
-          {slide.comment || "어울리는 와인을 추천하고 있어요"}
+        <h3
+          className={cn(
+            "mt-2 whitespace-pre-line break-words font-extrabold leading-tight text-ink-page",
+            isLongSummary ? "text-[20px]" : "text-[23px]",
+          )}
+        >
+          {summary}
         </h3>
       </div>
       <div className="flex items-start gap-4 py-2">

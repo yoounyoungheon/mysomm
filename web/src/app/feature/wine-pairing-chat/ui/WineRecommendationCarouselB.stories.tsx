@@ -42,6 +42,34 @@ const meta: Meta<typeof WineRecommendationCarouselB> = {
 };
 export default meta;
 type Story = StoryObj<typeof WineRecommendationCarouselB>;
+const summaryAtLimit = "갈비찜과는 부드럽게 이어지는 쪽으로 좋아요.";
+
+export const Summary23Characters: Story = {
+  args: { slides: [{ ...slide, comment: summaryAtLimit.slice(0, -1) }] },
+  play: async ({ canvasElement }) => {
+    const heading = canvasElement.querySelector("h3")!;
+    expect(Array.from(heading.textContent!).length).toBe(23);
+    expect(getComputedStyle(heading).fontSize).toBe("23px");
+  },
+};
+export const Summary24Characters: Story = {
+  args: { slides: [{ ...slide, comment: summaryAtLimit }] },
+  play: async ({ canvasElement }) => {
+    const heading = canvasElement.querySelector("h3")!;
+    expect(heading.textContent).toBe(summaryAtLimit);
+    expect(Array.from(heading.textContent!).length).toBe(24);
+    expect(getComputedStyle(heading).fontSize).toBe("23px");
+  },
+};
+export const Summary25Characters: Story = {
+  args: { slides: [{ ...slide, comment: `${summaryAtLimit}!` }] },
+  play: async ({ canvasElement }) => {
+    const heading = canvasElement.querySelector("h3")!;
+    expect(Array.from(heading.textContent!).length).toBe(25);
+    expect(getComputedStyle(heading).fontSize).toBe("20px");
+  },
+};
+
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
