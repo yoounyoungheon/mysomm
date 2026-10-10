@@ -19,7 +19,7 @@ Access/Refresh JWT 모두 `recommendationVariant: "A" | "B"`를 서명한다. Mi
 
 ## 서버 인증 로그
 
-beta-auth POST는 공통 server-only 로거로 요청·입력 검증·코드 승인/거부·토큰 발급 시작/완료·설정 오류 및 HTTP 상태를 JSON으로 출력한다. 코드·JWT·쿠키는 출력하지 않으며 요청별 requestId와 경과 시간을 제공한다. 인증 성공의 기존 홈 replace 이동은 유지한다. middleware에서 먼저 차단되는 요청은 beta-auth/BFF route까지 도달하지 않으므로 해당 route 로그에 포함되지 않는다.
+beta-auth POST는 공통 server-only 로거로 요청·입력 검증·코드 승인/거부·토큰 발급 시작/완료·설정 오류 및 HTTP 상태를 JSON으로 출력한다. 코드·JWT·쿠키는 출력하지 않으며 요청별 requestId와 경과 시간을 제공한다. 인증 성공 후에는 환영 안내를 표시하고 마지막 입장 검증 성공 시 홈으로 replace 이동한다. middleware에서 먼저 차단되는 요청은 beta-auth/BFF route까지 도달하지 않으므로 해당 route 로그에 포함되지 않는다.
 
 ## 목적
 
@@ -53,7 +53,20 @@ Access Token이 만료되면 Next.js Middleware가 Refresh Token을 검증해 �
     → Access JWT(type=beta-access, 15분) 발급
     → Refresh JWT(type=beta-refresh, 7일) 발급
     → beta_access, beta_refresh HttpOnly Cookie 설정
+    → /beta의 전체 화면 환영 다이얼로그 (3페이지)
+    → 마지막 ‘첫 번째 마이쏨 시작하기’ 버튼
+    → POST /api/beta-auth/enter: Middleware 갱신 및 Route Handler Access 검증
     → /
+
+### 인증 후 환영 안내
+
+`BetaWelcomeDialog`는 베타 코드 페이지에만 존재한다. 인증 성공 직후 이동하거나 refresh하지 않고 첫 슬라이드를 연다. 스와이프·하단 점 클릭·방향키로 세 페이지를 확인하며, 마지막 페이지에서만 입장 버튼을 제공한다. ESC, 바깥 클릭, 닫기 버튼으로 건너뛸 수 없다. 비활성 슬라이드는 inert로 숨김 처리하고, 좁은 화면에서는 각 슬라이드의 내용을 세로로 스크롤할 수 있다.
+
+마지막 버튼은 보호된 `POST /api/beta-auth/enter`를 호출한다. 동일 Origin 및 유효한 Access JWT를 확인하고 `200 { ok: true }`를 반환한다. 응답은 `private, no-store`이며 토큰을 노출하지 않는다. Refresh가 유효하면 Middleware가 Access를 갱신한다. 성공한 경우에만 `window.location.replace("/")`로 새 인증 문서를 요청한다. 중복 클릭을 차단하며, 401은 코드 재입력으로 안내하고 일시적인 오류는 재시도할 수 있다.
+
+RootLayout의 첫 방문 IntroDialog가 확인 중이거나 표시 중일 때는 인증 폼을 잠시 비활성화해 다이얼로그가 겹치지 않게 한다. 안내 완료 여부는 서버에 저장하지 않는다. 이미 인증된 사용자가 /beta를 새로고침하면 기존 정책대로 홈으로 이동한다. 이 안내는 필수 동의나 서버측 권한 조건이 아니다.
+
+두 번째 슬라이드는 ‘1. 와인 리스트를 찍고 / 2. 함께 먹을 음식을 고르고 / 3. 지금 마실 와인을 쉽게 고를 수 있는지 / 함께 확인해주세요.’로 안내한다. 토큰 수명 및 A/B 분기 정책은 변경하지 않는다. 입장 검증은 `beta.enter` 로그로 기록하며 코드와 토큰은 기록하지 않는다.
 
 두 JWT는 응답 body, URL, localStorage 또는 sessionStorage에 포함되지 않는다. 동일한 secret으로 서명하지만 서로 다른 **type**과 **audience**를 검증하므로 상호 대체할 수 없다.
 

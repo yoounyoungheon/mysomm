@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent } from "@/app/shared/ui/molecule/dialog";
 import { INTRO_DURATION_MS, INTRO_STORAGE_KEY, wasIntroClosedRecently } from "@/lib/intro/intro-policy";
 import { useCompleteIntro, useIntroStatus } from "../api/use-intro";
+import { useIntroPresentation } from "../model/intro-presentation";
 
 export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: boolean }) {
   const [open, setOpen] = useState(false);
@@ -13,6 +14,7 @@ export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: bool
   const closed = useRef(false);
   const status = useIntroStatus();
   const { mutate } = useCompleteIntro();
+  const { setPhase } = useIntroPresentation();
 
   useEffect(() => {
     if (decided.current || !status.isFetchedAfterMount) return;
@@ -24,15 +26,17 @@ export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: bool
       previousFocus.current = document.activeElement;
     }
     setOpen(show);
-  }, [status.isFetchedAfterMount, status.data, shouldShowIntro]);
+    setPhase(show ? "showing" : "finished");
+  }, [status.isFetchedAfterMount, status.data, shouldShowIntro, setPhase]);
 
   const close = useCallback(() => {
     if (closed.current) return;
     closed.current = true;
     setOpen(false);
+    setPhase("finished");
     try { sessionStorage.setItem(INTRO_STORAGE_KEY, String(Date.now())); } catch { /* Cookie is the durable source. */ }
     mutate(); // Never await persistence before closing the UI.
-  }, [mutate]);
+  }, [mutate, setPhase]);
 
   useEffect(() => {
     if (!open) return;

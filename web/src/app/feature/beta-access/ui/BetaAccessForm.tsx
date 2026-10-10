@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { KeyRound } from "lucide-react";
-import { useRouter } from "next/navigation";
+import BetaWelcomeDialog from "./BetaWelcomeDialog";
+import { BetaAccessError, useBetaAuthentication, useBetaEntry } from "../api/use-beta-access";
+import { useIntroPresentation } from "@/app/feature/intro/model/intro-presentation";
 import Button from "@/app/shared/ui/atom/button";
 import LoadingSpinner from "@/app/shared/ui/atom/loading-spinner";
 import TextInput from "@/app/shared/ui/atom/text-input";
@@ -14,73 +16,78 @@ import {
   CardTitle,
 } from "@/app/shared/ui/molecule/card";
 
-const INVALID_CODE_MESSAGE = "유효하지 않은 접근 코드입니다.";
 const SERVER_ERROR_MESSAGE =
   "인증을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
-
-type BetaAccessResponse = {
-  message?: unknown;
-};
 
 export type BetaAccessFormViewProps = {
   code: string;
   errorMessage: string | null;
   isSubmitting: boolean;
+  isBlocked?: boolean;
   onCodeChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
 export default function BetaAccessForm() {
-  const router = useRouter();
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [entryError, setEntryError] = useState<string | null>(null);
+  const [needsReauthentication, setNeedsReauthentication] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const submitting = useRef(false);
+  const entering = useRef(false);
+  const authentication = useBetaAuthentication();
+  const entry = useBetaEntry();
+  const { phase } = useIntroPresentation();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!code || isSubmitting) {
+    if (!code || submitting.current || welcomeOpen || phase !== "finished") {
       return;
     }
 
-    setIsSubmitting(true);
+    submitting.current = true;
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/api/beta-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        const body = (await response
-          .json()
-          .catch(() => null)) as BetaAccessResponse | null;
-        const message =
-          typeof body?.message === "string"
-            ? body.message
-            : response.status === 401
-            ? INVALID_CODE_MESSAGE
-            : SERVER_ERROR_MESSAGE;
-        setErrorMessage(message);
-        return;
-      }
-
-      router.replace("/");
-      router.refresh();
-    } catch {
-      setErrorMessage(SERVER_ERROR_MESSAGE);
+      await authentication.mutateAsync(code);
+      setCode("");
+      authentication.reset();
+      setEntryError(null);
+      setNeedsReauthentication(false);
+      setWelcomeOpen(true);
+    } catch (error) {
+      setErrorMessage(error instanceof BetaAccessError ? error.message : SERVER_ERROR_MESSAGE);
     } finally {
-      setIsSubmitting(false);
+      submitting.current = false;
+    }
+  };
+
+  const handleStart = async () => {
+    if (!welcomeOpen || entering.current || needsReauthentication) return;
+    entering.current = true;
+    setEntryError(null);
+    try {
+      await entry.mutateAsync();
+      setIsNavigating(true);
+      // A fresh protected document request avoids stale pre-auth Router Cache.
+      window.location.replace("/");
+    } catch (error) {
+      const unauthorized = error instanceof BetaAccessError && error.status === 401;
+      setNeedsReauthentication(unauthorized);
+      setEntryError(unauthorized ? "인증이 만료되었어요. 베타 코드를 다시 입력해 주세요." : "입장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      entering.current = false;
     }
   };
 
   return (
+    <>
     <BetaAccessFormView
       code={code}
       errorMessage={errorMessage}
-      isSubmitting={isSubmitting}
+      isSubmitting={authentication.isPending}
+      isBlocked={phase !== "finished" || welcomeOpen}
       onCodeChange={(value) => {
         setCode(value);
         if (errorMessage) {
@@ -89,6 +96,19 @@ export default function BetaAccessForm() {
       }}
       onSubmit={handleSubmit}
     />
+    {welcomeOpen && <BetaWelcomeDialog
+      isEntering={entry.isPending || isNavigating}
+      errorMessage={entryError}
+      needsReauthentication={needsReauthentication}
+      onStart={handleStart}
+      onReauthenticate={() => {
+        setWelcomeOpen(false);
+        setNeedsReauthentication(false);
+        setEntryError(null);
+        entry.reset();
+      }}
+    />}
+    </>
   );
 }
 
@@ -96,6 +116,7 @@ export function BetaAccessFormView({
   code,
   errorMessage,
   isSubmitting,
+  isBlocked = false,
   onCodeChange,
   onSubmit,
 }: BetaAccessFormViewProps) {
@@ -134,7 +155,7 @@ export function BetaAccessFormView({
               status={errorMessage ? "error" : "default"}
               aria-invalid={Boolean(errorMessage)}
               aria-describedby={errorId}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isBlocked}
               onValueChange={onCodeChange}
               className="h-12"
             />
@@ -151,7 +172,7 @@ export function BetaAccessFormView({
 
           <Button
             htmlType="submit"
-            disabled={!code || isSubmitting}
+            disabled={!code || isSubmitting || isBlocked}
             className="h-12 w-full gap-2 rounded-2xl"
           >
             {isSubmitting ? (

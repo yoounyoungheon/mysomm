@@ -16,6 +16,9 @@ import { middleware } from "./middleware";
 const TEST_SECRET = "test-secret-that-is-at-least-32-bytes-long";
 
 describe("beta access middleware", () => {
+  it("keeps the onboarding entry endpoint protected", async () => {
+    expect((await middleware(createRequest("/api/beta-auth/enter"))).status).toBe(401);
+  });
   it.each(["/api/intro/status", "/api/intro/complete"])("allows intro endpoint %s before authentication", async (path) => {
     const response = await middleware(createRequest(path));
     expect(response.status).toBe(200);
@@ -47,6 +50,7 @@ describe("beta access middleware", () => {
     "/wine/chat",
     "/wine/recommend",
     "/api/wine-pairings/chat",
+    "/api/beta-auth/enter",
     "/beta",
   ])("retains B when renewing on %s", async (path) => {
     const response = await middleware(
