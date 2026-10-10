@@ -5,7 +5,7 @@ RootLayout에서 방문 쿠키를 확인하고 Providers 내부에 IntroDialog�
 ## 표시 및 저장
 
 - isFirstVisit 쿠키가 없거나 값이 false가 아니면 표시한다.
-- portal/content가 표시된 뒤 약 1초 후 자동으로 닫는다. 백그라운드에서는 표시 시간을 중단한다.
+- portal/content가 표시된 뒤 약 5초 후 자동으로 닫는다. 백그라운드에서는 표시 시간을 중단한다.
 - 닫힐 때 POST /api/intro/complete로 HttpOnly 방문 쿠키를 false로 저장한다. SameSite=Lax, Path=/, 운영 Secure, Max-Age=86400초.
 - 저장 성공 여부와 관계없이 다이얼로그를 닫는다. 쿠키 저장이 실패해도 페이지를 사용할 수 있다.
 - RootLayout 최초 마운트에서 GET /api/intro/status로 현재 쿠키를 확인하고 조회 실패 시 서버 초기값을 사용한다.

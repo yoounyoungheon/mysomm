@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { INTRO_MAX_AGE_SECONDS, shouldShowIntro, wasIntroClosedRecently } from "./intro-policy";
+import { INTRO_DURATION_MS, INTRO_MAX_AGE_SECONDS, shouldShowIntro, wasIntroClosedRecently } from "./intro-policy";
 
 describe("intro policy", () => {
+  it("shows the intro for five seconds", () => {
+    expect(INTRO_DURATION_MS).toBe(5000);
+  });
   it.each([undefined, "true", "", "invalid"])("shows intro for %s", (value) => {
     expect(shouldShowIntro(value)).toBe(true);
   });

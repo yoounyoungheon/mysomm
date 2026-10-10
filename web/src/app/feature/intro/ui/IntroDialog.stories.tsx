@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import IntroDialog from "./IntroDialog";
-import { INTRO_STORAGE_KEY } from "@/lib/intro/intro-policy";
+import { INTRO_DURATION_MS, INTRO_STORAGE_KEY } from "@/lib/intro/intro-policy";
 
 const complete = fn();
 function fixture(isFirstVisit: boolean, failed = false, recent = false) {
@@ -54,8 +54,8 @@ export const Default: Story = {
     expect(within(dialog).queryByRole("button", { name: "건너뛰기" })).not.toBeInTheDocument();
     expect(complete).not.toHaveBeenCalled();
     const start = performance.now();
-    await waitFor(() => expect(dialog).not.toBeInTheDocument(), { timeout: 2500 });
-    expect(performance.now() - start).toBeGreaterThan(800);
+    await waitFor(() => expect(dialog).not.toBeInTheDocument(), { timeout: INTRO_DURATION_MS + 2000 });
+    expect(performance.now() - start).toBeGreaterThan(INTRO_DURATION_MS - 500);
     expect(complete).toHaveBeenCalledTimes(1);
     expect(document.getElementById("app-content")).toHaveFocus();
   },
@@ -75,7 +75,7 @@ export const SaveFailure: Story = {
   beforeEach: fixture(true, true),
   play: async () => {
     const dialog = await within(document.body).findByRole("dialog");
-    await waitFor(() => expect(dialog).not.toBeInTheDocument(), { timeout: 2500 });
+    await waitFor(() => expect(dialog).not.toBeInTheDocument(), { timeout: INTRO_DURATION_MS + 2000 });
     expect(complete).toHaveBeenCalledTimes(1);
   },
 };

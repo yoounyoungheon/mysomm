@@ -23,6 +23,8 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
+          // IntroDialog의 5초 자동 닫기까지 브라우저에서 검증한다.
+          testTimeout: 15000,
           browser: {
             enabled: true,
             headless: true,

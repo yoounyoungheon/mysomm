@@ -1,6 +1,6 @@
 export const INTRO_COOKIE_NAME = "isFirstVisit";
 export const INTRO_MAX_AGE_SECONDS = 24 * 60 * 60;
-export const INTRO_DURATION_MS = 1000;
+export const INTRO_DURATION_MS = 5000;
 export const INTRO_STORAGE_KEY = "mysomm:intro-closed-at";
 
 export function shouldShowIntro(cookieValue: string | undefined): boolean {
