@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import React from "react";
+import { expect, userEvent, within } from "storybook/test";
 import Button from "../atom/button";
 import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./dialog";
 
@@ -14,6 +15,7 @@ const meta: Meta<typeof DialogContent> = {
     title: { control: "text" },
     description: { control: "text" },
     className: { control: "text" },
+    fullscreen: { control: "boolean", description: "브라우저 전체 화면을 덮는 다이얼로그" },
   },
   args: {
     title: "Dialog title",
@@ -67,4 +69,17 @@ export const Opened: Story = {
     description: "Storybook에서 열려있는 상태로 확인할 수 있습니다.",
   },
   render: Default.render,
+};
+
+export const Fullscreen: Story = {
+  args: { fullscreen: true, title: "전체 화면 다이얼로그" },
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Open Dialog" }));
+    const dialog = await within(document.body).findByRole("dialog");
+    const rect = dialog.getBoundingClientRect();
+    expect(Math.abs(rect.width - window.innerWidth)).toBeLessThan(2);
+    expect(Math.abs(rect.height - window.innerHeight)).toBeLessThan(2);
+    await userEvent.keyboard("{Escape}");
+  },
 };

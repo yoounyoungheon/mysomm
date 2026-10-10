@@ -19,6 +19,7 @@ type DialogContentProps = React.ComponentPropsWithRef<
   description?: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  fullscreen?: boolean;
 };
 
 function DialogOverlay({
@@ -67,6 +68,7 @@ function DialogContent({
   description,
   titleClassName,
   descriptionClassName,
+  fullscreen = false,
   ref,
   ...props
 }: DialogContentProps) {
@@ -77,7 +79,9 @@ function DialogContent({
         {...props}
         ref={ref}
         className={cn(
-          "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md",
+          fullscreen
+            ? "fixed inset-0 flex h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 transform-none flex-col items-center justify-center gap-0 rounded-none border-0 bg-white p-6 shadow-none data-[state=open]:animate-none data-[state=closed]:animate-none sm:rounded-none"
+            : "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md",
           className
         )}
       >
@@ -94,10 +98,6 @@ function DialogContent({
           <DialogDescription />
         )}
         {children}
-        <DialogClose
-          aria-label="Close"
-          className="absolute top-4 right-4"
-        />
       </ShadcnDialogContent>
     </DialogPortal>
   );

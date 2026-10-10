@@ -115,7 +115,7 @@ function Hero() {
   return (
     <section>
       <p className="text-[13px] font-bold text-primary">오늘도 실패 없는 한 잔</p>
-      <h1 className="mt-2 text-[28px] font-extrabold leading-[1.28] text-ink-page">
+      <h1 id="home-heading" tabIndex={-1} className="mt-2 text-[28px] font-extrabold leading-[1.28] text-ink-page outline-none">
         취향에 맞는 와인,
         <br />
         마이쏨이 골라드릴게요
