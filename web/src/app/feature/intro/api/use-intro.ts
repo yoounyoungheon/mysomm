@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function useIntroStatus() {
   return useQuery({
-    queryKey: ["home", "intro-status"],
+    queryKey: ["intro", "status"],
     queryFn: async ({ signal }): Promise<{ isFirstVisit: boolean }> => {
       const timeout = new AbortController();
       const timer = setTimeout(() => timeout.abort(), 3000);

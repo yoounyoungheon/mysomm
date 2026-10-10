@@ -12,7 +12,10 @@ import {
   type RecommendationVariant,
 } from "@/lib/auth/beta-token";
 
-const PUBLIC_API_PATHS = new Set(["/api/beta-auth", "/api/health"]);
+const PUBLIC_API_PATHS = new Set([
+  "/api/beta-auth", "/api/health",
+  "/api/intro/status", "/api/intro/complete",
+]);
 const PUBLIC_METADATA_PATHS = new Set([
   "/favicon.ico",
   "/robots.txt",

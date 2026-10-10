@@ -1,14 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-vi.mock("@/lib/auth/beta-request", async (original) => ({
-  ...await original<typeof import("@/lib/auth/beta-request")>(),
-  hasValidBetaAccess: vi.fn().mockResolvedValue(true),
-}));
-import { hasValidBetaAccess } from "@/lib/auth/beta-request";
 import { POST } from "./route";
 import { GET } from "../status/route";
 
-afterEach(() => { vi.mocked(hasValidBetaAccess).mockResolvedValue(true); vi.unstubAllEnvs(); });
+afterEach(() => { vi.unstubAllEnvs(); });
 
 function request(origin = "http://localhost", cookie?: string) {
   return new NextRequest("http://localhost/api/intro/complete", {
@@ -44,10 +39,9 @@ describe("intro routes", () => {
   it("rejects missing Origin", async () => {
     expect((await POST(new NextRequest("http://localhost/api/intro/complete", { method: "POST" }))).status).toBe(403);
   });
-  it("rejects unauthenticated completion and status", async () => {
-    vi.mocked(hasValidBetaAccess).mockResolvedValue(false);
-    expect((await POST(request())).status).toBe(401);
-    expect((await GET(request())).status).toBe(401);
+  it("allows the intro before beta authentication", async () => {
+    expect((await POST(request())).status).toBe(204);
+    expect((await GET(request())).status).toBe(200);
   });
   it.each([
     [undefined, true], ["isFirstVisit=true", true], ["isFirstVisit=false", false],

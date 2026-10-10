@@ -16,6 +16,15 @@ import { middleware } from "./middleware";
 const TEST_SECRET = "test-secret-that-is-at-least-32-bytes-long";
 
 describe("beta access middleware", () => {
+  it.each(["/api/intro/status", "/api/intro/complete"])("allows intro endpoint %s before authentication", async (path) => {
+    const response = await middleware(createRequest(path));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+  it("does not make other intro-prefixed API paths public", async () => {
+    expect((await middleware(createRequest("/api/intro/private"))).status).toBe(401);
+  });
   it.each([
     ["A", "/wine/chat", null],
     ["A", "/wine/recommend", "/wine/chat"],

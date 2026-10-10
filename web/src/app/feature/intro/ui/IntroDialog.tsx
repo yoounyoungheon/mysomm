@@ -8,6 +8,7 @@ import { useCompleteIntro, useIntroStatus } from "../api/use-intro";
 export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: boolean }) {
   const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
   const decided = useRef(false);
   const closed = useRef(false);
   const status = useIntroStatus();
@@ -18,7 +19,11 @@ export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: bool
     decided.current = true;
     let recentlyClosed = false;
     try { recentlyClosed = wasIntroClosedRecently(sessionStorage.getItem(INTRO_STORAGE_KEY)); } catch { /* Storage may be blocked. */ }
-    setOpen((status.data?.isFirstVisit ?? shouldShowIntro) && !recentlyClosed);
+    const show = (status.data?.isFirstVisit ?? shouldShowIntro) && !recentlyClosed;
+    if (show && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+      previousFocus.current = document.activeElement;
+    }
+    setOpen(show);
   }, [status.isFetchedAfterMount, status.data, shouldShowIntro]);
 
   const close = useCallback(() => {
@@ -75,7 +80,11 @@ export default function IntroDialog({ shouldShowIntro }: { shouldShowIntro: bool
         className="bg-primary text-white [&>button]:text-white"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          document.getElementById("home-heading")?.focus({ preventScroll: true });
+          const previous = previousFocus.current;
+          const target = previous?.isConnected && !previous.closest('[inert], [aria-hidden="true"]')
+            ? previous
+            : document.getElementById("app-content");
+          target?.focus({ preventScroll: true });
         }}
       >
         <div className="flex w-full max-w-md flex-col items-center gap-5 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">

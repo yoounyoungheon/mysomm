@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBetaUnauthorizedResponse, hasValidBetaAccess } from "@/lib/auth/beta-request";
 import { INTRO_COOKIE_NAME, INTRO_MAX_AGE_SECONDS } from "@/lib/intro/intro-policy";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -13,8 +12,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       status: 403, headers: { "Cache-Control": "no-store" },
     });
   }
-  if (!(await hasValidBetaAccess(request))) return createBetaUnauthorizedResponse();
-
   const response = new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   response.cookies.set(INTRO_COOKIE_NAME, "false", {
     httpOnly: true,
